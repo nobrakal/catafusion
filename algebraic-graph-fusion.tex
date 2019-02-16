@@ -70,9 +70,11 @@ TODO
 \subsection{Catamorphisms and paramorphisms}
 Catamorphisms were introduced to reason on function that generalize a fold on a recursive structure.
 They were first introduced by TODO and popularized by Meijer and al. \cite{4cec4a43c86444479dc0003182424795}.
-Such functions 
 
 \subsection{Anamorphisms and apomorphisms}
+
+\subsection{Fusion of recursive scheme - hylomorphisms}
+TODO
 
 \subsection{Deforestation}
 Deforestation is a process first introduced by Wadler \cite{WADLER1990231} and realized in Haskell by Gill and al. \cite{Gill:1993:SCD:165180.165214}
@@ -145,7 +147,25 @@ paragraph e v o c = go
     go (Connect a b) = c a b (go a) (go b)
 \end{minted}
 
-\subsection{The goal}
+This function allows us to define a useful paramorphism on graphs, the \verb|hasEdge| function that test if an edge is in a graph:
+
+\begin{minted}{Haskell}
+hasEdge :: Eq a => a -> a -> Graph a -> Bool
+hasEdge s t g = (paragraph e v o c) == Edge
+  where
+    e = Miss
+    v x = if x == s then Tail else Miss
+    o _ _ x y = case x of
+      Miss -> y
+      Tail -> max Tail y
+      Edge -> Edge
+    c _ b x y = case x of
+       Miss -> y
+       Tail -> if hasVertex t b then Edge else Tail
+       Edge -> Edge
+\end{minted}
+
+Note that this function is \emph{strictly} a paramorphism: it uses directly an unconsumed part of the graph.
 
 \begin{acks}
 TODO

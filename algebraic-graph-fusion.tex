@@ -1,4 +1,4 @@
-\documentclass[sigplan]{acmart}
+\documentclass[format=sigplan]{acmart}
 
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
@@ -72,9 +72,13 @@ An unsolved one
 IDEA
 	
 \section{Recursion schemes}
+Recursion schemes are almost everywhere in functional programming. They were popularized by Meijer and al. \cite{4cec4a43c86444479dc0003182424795}.
+
 \subsection{Catamorphisms and paramorphisms}
-Catamorphisms were introduced to reason on function that generalize a fold on a recursive structure.
-They were first introduced by TODO and popularized by Meijer and al. \cite{4cec4a43c86444479dc0003182424795}.
+A \emph{catamorphisms} generalize a fold on a recursive structure. For example, the catamorphism of lists is the so-called \mintinline{Haskell}{foldr}.
+\begin{minted}{Haskell}
+foldr :: (a -> b -> b) -> b -> [a] -> b
+\end{minted}
 
 \subsection{Anamorphisms and apomorphisms}
 
@@ -82,14 +86,26 @@ They were first introduced by TODO and popularized by Meijer and al. \cite{4cec4
 TODO
 
 \subsection{Deforestation}
-Deforestation is a process first introduced by Wadler \cite{WADLER1990231} and realized in Haskell by Gill and al. \cite{Gill:1993:SCD:165180.165214}
+Deforestation is a process first introduced by Wadler \cite{WADLER1990231} and realized in Haskell by Gill and al. \cite{Gill:1993:SCD:165180.165214}. It is the idea that one can eliminate a structure produced by an anamorphism and destructed right away by a catamorphim.
+
+The first example of this concept is the expression:
+\begin{minted}{Haskell}
+foldr c e (map f xs)
+\end{minted}
+\mintinline{Haskell}{map} will destruct the original list and produce a new one, which will be destructed after with \mintinline{Haskell}{foldr}.
+
+Obviously, the above expression is equivalent to a more efficient one:
+\begin{minted}{Haskell}
+foldr (c . f) e xs
+\end{minted}
+The above expression will go through the list only once.
 
 \section{Recursive types}
 Recursive types can be defined as \emph{least fixed point} TODO REF
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}
-This fixed point operator needs to use a \verb|newtype| since it calls itself, but the work of TODO will optimize this use.
+This fixed point operator needs to use a \mintinline{Haskell}{newtype} since it calls itself, but the work of TODO will optimize this use.
 
 For example, you define the following types:
 \begin{minted}{Haskell}
@@ -106,7 +122,7 @@ type List a = Fix (ListF a)
 type Tree a = Fix (Tree a)
 \end{minted}
 
-The definition of a type in term of \verb|Fix| allows a straightforward implementation of \verb|cata|:
+The definition of a type in term of \mintinline{Haskell}{Fix} allows a straightforward implementation of \mintinline{Haskell}{cata}:
 \begin{minted}{Haskell}
 cata :: Functor f => (f b -> b) -> Fix f -> b
 cata f = c where c = f . fmap c . unfix

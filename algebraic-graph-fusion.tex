@@ -4,6 +4,7 @@
 \usepackage[english]{babel}
 
 \usepackage{minted}
+\newcommand{\minline}[1]{\mintinline{Haskell}{#1}}
 
 %
 % defining the \BibTeX command - from Oren Patashnik's original BibTeX documentation.
@@ -75,7 +76,7 @@ IDEA
 Recursion schemes are almost everywhere in functional programming. They were popularized by Meijer and al. \cite{4cec4a43c86444479dc0003182424795}.
 
 \subsection{Catamorphisms and paramorphisms}
-A \emph{catamorphisms} generalize a fold on a recursive structure. For example, the catamorphism of lists is the so-called \mintinline{Haskell}{foldr}.
+A \emph{catamorphisms} generalize a fold on a recursive structure. For example, the catamorphism of lists is the so-called \minline{foldr}.
 \begin{minted}{Haskell}
 foldr :: (a -> b -> b) -> b -> [a] -> b
 \end{minted}
@@ -94,7 +95,7 @@ The first example of this concept is the expression:
 \begin{minted}{Haskell}
 foldr c e (map f xs)
 \end{minted}
-\mintinline{Haskell}{map} will destruct the original list and produce a new one, which will be destructed after with \mintinline{Haskell}{foldr}.
+\minline{map} will destruct the original list and produce a new one, which will be destructed after with \minline{foldr}.
 
 Obviously, the above expression is equivalent to a more efficient one:
 \begin{minted}{Haskell}
@@ -102,15 +103,15 @@ foldr (c . f) e xs
 \end{minted}
 The above expression will go through the list only once.
 
-Note that the rewriting operation we made in this example is not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \mintinline{Haskell}{map}. This concept can be simply generalized to recursive structure, and we will show in the next section.
+Note that the rewriting operation we made in this example is not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \minline{map}. This concept can be simply generalized to recursive structure, and we will show in the next section.
 
 \section{Recursive types}
 \subsection{Definition}
-Recursive types can be defined as \emph{least fixed point} TODO REF, using the \mintinline{Haskell}{Fix} data-type:
+Recursive types can be defined as \emph{least fixed point} TODO REF, using the \minline{Fix} data-type:
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}
-It is defined with the \mintinline{Haskell}{newtype} (and not simply by a type synonym) since it calls itself, but the work of TODO will optimize this use.
+It is defined with the \minline{newtype} (and not simply by a type synonym) since it calls itself, but the work of TODO will optimize this use.
 
 For example, you define the following types:
 \begin{minted}{Haskell}
@@ -127,13 +128,13 @@ type List a = Fix (ListF a)
 type Tree a = Fix (Tree a)
 \end{minted}
 
-The definition of a type in term of \mintinline{Haskell}{Fix} allows a straightforward implementation of \mintinline{Haskell}{cata}, a high-order function for catamorphisms, provided that the fixed structure in a functor:
+The definition of a type in term of \minline{Fix} allows a straightforward implementation of \minline{cata}, a high-order function for catamorphisms, provided that the fixed structure in a functor:
 \begin{minted}{Haskell}
 cata :: Functor f => (f b -> b) -> Fix f -> b
 cata f = c where c = f . fmap c . unfix
 \end{minted}
 
-For example, \mintinline{Haskell}{(List a)} from the above example, once can write \mintinline{Haskell}{foldr}
+For example, \minline{(List a)} from the above example, once can write \minline{foldr}:
 \begin{minted}{Haskell}
 foldr :: (a -> b -> b) -> b -> [a] -> b
 foldr c e = cata go
@@ -145,18 +146,38 @@ foldr c e = cata go
 \subsection{Deforestation on recursive types}
 Deforestation can be implemented on recursive types imitating the work of Gill and al. \cite{Gill:1993:SCD:165180.165214}.
 
-
-TODO
-
-
+Applying a recursive structure to \minline{cata go} has just the effect to replace every occurrence of \minline{Fix} by \minline{go} in the structure. Consequently, the idea is to abstract structure-producing functions with respect to \minline{Fix}. This is done using \minline{buildR}.
 
 \begin{minted}{Haskell}
 type Cata f = forall b. (f b -> b) -> b
 
 buildR :: Cata f -> Fix f
-buildR g = g fix
-{-# INLINE [1] buildR #-}
+buildR g = g Fix
 \end{minted}
+
+Now, we have the lovely property that:
+$$cata\ go\ (buildR\ g)\ =\ g\ go$$
+
+This is exactly what we want: using the right-side of the equation \emph{does not}
+build an intermediate structure.
+
+\subsubsection{Validity}
+Again, adapting the work of Gill and al. \cite{Gill:1993:SCD:165180.165214}, te validity of the above rule is guaranteed by the type.
+
+\begin{theorem}
+Using
+\begin{itemize}
+	\item $g : \forall\ b.\ (f b \to b) \to b$
+	\item $go : f a \to a $
+\end{itemize}
+$$cata\ go\ (buildR\ g)\ =\ g\ go$$
+\end{theorem}
+\begin{proof}
+	TODO
+\end{proof}
+
+\subsubsection{Implementation}
+
 
 \section{Going further with algebraic graphs}
 As pointed out in TODO, the \verb|Fix| method is not ideal at all and prevent some deforestation to be made.

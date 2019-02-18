@@ -79,8 +79,10 @@ A \emph{catamorphisms} generalize a fold on a recursive structure. For example, 
 \begin{minted}{Haskell}
 foldr :: (a -> b -> b) -> b -> [a] -> b
 \end{minted}
+TODO
 
 \subsection{Anamorphisms and apomorphisms}
+TODO
 
 \subsection{Fusion of recursive scheme - hylomorphisms}
 TODO
@@ -100,12 +102,15 @@ foldr (c . f) e xs
 \end{minted}
 The above expression will go through the list only once.
 
+Note that the rewriting operation we made in this example is not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \mintinline{Haskell}{map}. This concept can be simply generalized to recursive structure, and we will show in the next section.
+
 \section{Recursive types}
-Recursive types can be defined as \emph{least fixed point} TODO REF
+\subsection{Definition}
+Recursive types can be defined as \emph{least fixed point} TODO REF, using the \mintinline{Haskell}{Fix} data-type:
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}
-This fixed point operator needs to use a \mintinline{Haskell}{newtype} since it calls itself, but the work of TODO will optimize this use.
+It is defined with the \mintinline{Haskell}{newtype} (and not simply by a type synonym) since it calls itself, but the work of TODO will optimize this use.
 
 For example, you define the following types:
 \begin{minted}{Haskell}
@@ -122,10 +127,35 @@ type List a = Fix (ListF a)
 type Tree a = Fix (Tree a)
 \end{minted}
 
-The definition of a type in term of \mintinline{Haskell}{Fix} allows a straightforward implementation of \mintinline{Haskell}{cata}:
+The definition of a type in term of \mintinline{Haskell}{Fix} allows a straightforward implementation of \mintinline{Haskell}{cata}, a high-order function for catamorphisms, provided that the fixed structure in a functor:
 \begin{minted}{Haskell}
 cata :: Functor f => (f b -> b) -> Fix f -> b
 cata f = c where c = f . fmap c . unfix
+\end{minted}
+
+For example, \mintinline{Haskell}{(List a)} from the above example, once can write \mintinline{Haskell}{foldr}
+\begin{minted}{Haskell}
+foldr :: (a -> b -> b) -> b -> [a] -> b
+foldr c e = cata go
+  where
+    go NilF = e
+    go (ConsF a b) = c a b
+\end{minted}
+
+\subsection{Deforestation on recursive types}
+Deforestation can be implemented on recursive types imitating the work of Gill and al. \cite{Gill:1993:SCD:165180.165214}.
+
+
+TODO
+
+
+
+\begin{minted}{Haskell}
+type Cata f = forall b. (f b -> b) -> b
+
+buildR :: Cata f -> Fix f
+buildR g = g fix
+{-# INLINE [1] buildR #-}
 \end{minted}
 
 \section{Going further with algebraic graphs}

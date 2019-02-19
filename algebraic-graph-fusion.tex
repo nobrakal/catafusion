@@ -105,7 +105,7 @@ The above expression will go through the list only once.
 
 Note that the rewriting operation we made in this example is not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \minline{map}. This concept can be simply generalized to recursive structure, and we will show in the next section.
 
-\section{Recursive types}
+\section{Deforestation on recursive types}
 \subsection{Definition}
 Recursive types can be defined as \emph{least fixed point} TODO REF, using the \minline{Fix} data-type:
 \begin{minted}{Haskell}
@@ -143,7 +143,7 @@ foldr c e = cata go
     go (ConsF a b) = c a b
 \end{minted}
 
-\subsection{Deforestation on recursive types}
+\subsection{The idea}
 Deforestation can be implemented on recursive types imitating the work of Gill and al. \cite{Gill:1993:SCD:165180.165214}.
 
 Applying a recursive structure to \minline{cata go} has just the effect to replace every occurrence of \minline{Fix} by \minline{go} in the structure. Consequently, the idea is to abstract structure-producing functions with respect to \minline{Fix}. This is done using \minline{buildR}.
@@ -176,8 +176,64 @@ $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 	TODO
 \end{proof}
 
-\subsubsection{Implementation}
+\subsection{Implementation}
+The implementation is pretty straightforward using GHC's rewrite rules described in \cite{pbr}. A rewrite rule consist in a name, maybe a phase to run and what to rewrite. TODO\\
+GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to control when the rules are firing and when functions are inlined.
 
+We want to have our rules compatible with those for lists already in place (the \verb|foldr/build| of \cite{Gill:1993:SCD:165180.165214}). They all target the \minline{bind} (defined in\verb|GHC.Base|) functions that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2.
+
+Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add an 
+\begin{minted}{Haskell}
+{-# INLINE [1] buildR #-}
+\end{minted}
+pragma, to ensure that \minline{buildR} is not inlined too quickly. Note that we force the inlining by using \verb|INLINE| and not only \verb|NOINLINE|, but this is a good idea since high-order functions like \minline{buildR} generally benefit from inlining. 
+
+Now, our rule will also target \minline{cata}, do we also add an \verb|INLINE| pragma to it.
+\begin{minted}{Haskell}
+{-# INLINE [0] cata #-}
+\end{minted}
+
+TODO WHY 0
+
+Now we can safely add the rule:
+\begin{minted}{Haskell}
+type Cata f = forall b. (f b -> b) -> b
+{-# RULES
+"cata/buildR" forall (f :: t b -> b) (g :: Cata t).
+  cata f (buildR g) = g f
+ #-}
+\end{minted}
+This rule is genuinely replacing all occurrences of \minline{cata f (buildR g)} by \minline{g f} \emph{when types matches}, that is when the argument of \minline{buildR} are allowing fusion.
+
+\subsection{Rewrite unneeded destructions}
+All our work if focused on destructing structures. It is working great but can add unwanted implications. Consider the following code, implementing \minline{bind} for recursive trees:
+
+\begin{minted}{Haskell}
+bind :: (a -> Tree b) -> Tree a -> Tree b
+bind f t = buildR
+  (\u -> cata
+    (\x ->
+      case x of
+        EmptyF -> u EmptyF
+        LeafF x -> cata u (f x)
+        NodeF a b -> u (NodeF a b))
+    t)
+\end{minted}
+
+So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because we can replace \minline{u} by an other function than \minline{Fix} TODO EXPLAIN MORE.
+
+The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner and al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, we can target the function that replace it: \minline{coerce}.
+
+\begin{minted}{Haskell}
+type Cata f = forall b. (f b -> b) -> b
+{-# RULES
+"cata/id" forall (g :: Fix f)
+  cata coerce g = id
+#-}
+\end{minted}
+
+\subsection{Examples}
+TODO
 
 \section{Going further with algebraic graphs}
 As pointed out in TODO, the \verb|Fix| method is not ideal at all and prevent some deforestation to be made.

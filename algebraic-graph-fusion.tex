@@ -228,7 +228,7 @@ The solution is to use a second rewriting rule that get rid of the identity cata
 type Cata f = forall b. (f b -> b) -> b
 {-# RULES
 "cata/id" forall (g :: Fix f)
-  cata coerce g = id
+  cata coerce g = g
 #-}
 \end{minted}
 

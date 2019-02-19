@@ -89,7 +89,7 @@ TODO
 TODO
 
 \subsection{Deforestation}
-Deforestation is a process first introduced by Wadler \cite{WADLER1990231} and realized in Haskell by Gill and al. \cite{Gill:1993:SCD:165180.165214}. It is the idea that one can eliminate a structure produced by an anamorphism and destructed right away by a catamorphim.
+Deforestation is a process first introduced by Wadler \cite{WADLER1990231} and realized in Haskell by Gill and al. \cite{Gill:1993:SCD:165180.165214}. It is the idea that one can eliminate a structure produced by an anamorphism and destructed right away by a catamorphism.
 
 The first example of this concept is the expression:
 \begin{minted}{Haskell}
@@ -128,7 +128,7 @@ type List a = Fix (ListF a)
 type Tree a = Fix (Tree a)
 \end{minted}
 
-The definition of a type in term of \minline{Fix} allows a straightforward implementation of \minline{cata}, a high-order function for catamorphisms, provided that the fixed structure in a functor:
+The definition of a type in term of \minline{Fix} allows a straightforward implementation of \minline{cata}, a high-order function for catamorphisms, provided that the fixed structure is a functor:
 \begin{minted}{Haskell}
 cata :: Functor f => (f b -> b) -> Fix f -> b
 cata f = c where c = f . fmap c . unfix
@@ -206,7 +206,7 @@ type Cata f = forall b. (f b -> b) -> b
 This rule is genuinely replacing all occurrences of \minline{cata f (buildR g)} by \minline{g f} \emph{when types matches}, that is when the argument of \minline{buildR} are allowing fusion.
 
 \subsection{Rewrite unneeded destructions}
-All our work if focused on destructing structures. It is working great but can add unwanted implications. Consider the following code, implementing \minline{bind} for recursive trees:
+All our work if focused on destructing structures. It is working great but can have unwanted implications. Consider the following code, implementing \minline{bind} for recursive trees:
 
 \begin{minted}{Haskell}
 bind :: (a -> Tree b) -> Tree a -> Tree b
@@ -222,7 +222,7 @@ bind f t = buildR
 
 So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because we can replace \minline{u} by an other function than \minline{Fix} TODO EXPLAIN MORE.
 
-The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner and al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, we can target the function that replace it: \minline{coerce}.
+The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner and al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned and we can target the function that replace \minline{Fix}: \minline{coerce}.
 
 \begin{minted}{Haskell}
 type Cata f = forall b. (f b -> b) -> b
@@ -234,6 +234,18 @@ type Cata f = forall b. (f b -> b) -> b
 
 \subsection{Examples}
 TODO
+
+\subsection{Paramorphism for recursive types}
+\label{sec:para-rec}
+As far as we did, we worked only on catamorphisms. How can we implement paramorphisms?
+
+The usual way is with \minline{para}:
+\begin{minted}{Haskell}
+para :: Functor f => (f (Fix f, a) -> a) -> Fix f -> a
+para t = p
+  where
+    p = t . fmap ((,) <*> p) . unfix
+\end{minted}
 
 \section{Going further with algebraic graphs}
 As pointed out in TODO, the \verb|Fix| method is not ideal at all and prevent some deforestation to be made.
@@ -275,11 +287,15 @@ paragraph e v o c = go
     go (Connect a b) = c a b (go a) (go b)
 \end{minted}
 
-This function allows us to define a useful paramorphism on graphs, the \verb|hasEdge| function that test if an edge is in a graph:
+This is exactly what we wanted and better than if made with \minline{Fix} in section \ref{sec:para-rec}: combinations functions \minline{o} and \minline{c} have a direct access of the unconsumed part of the structure.
+
+\subsection{The case of hasEdge}
+
+This function allows us to define an useful paramorphism on graphs, the \minline{hasEdge} function that test if an edge is in a graph:
 
 \begin{minted}{Haskell}
 hasEdge :: Eq a => a -> a -> Graph a -> Bool
-hasEdge s t g = (paragraph e v o c) == Edge
+hasEdge s t g = (paragraph e v o c g) == Edge
   where
     e = Miss
     v x = if x == s then Tail else Miss
@@ -293,7 +309,39 @@ hasEdge s t g = (paragraph e v o c) == Edge
        Edge -> Edge
 \end{minted}
 
-Note that this function is \emph{strictly} a paramorphism: it uses directly an unconsumed part of the graph.
+Note that this function is \emph{strictly} a paramorphism: it uses directly an unconsumed part of the graph (inside \minline{c}).
+
+Now consider the following expression:
+\begin{minted}{Haskell}
+hasEdge s t (bind f g)
+\end{minted}
+TODO RECALL GRAPH INSTANCES
+It feels that deforestation can happen, and convert this expression to
+\begin{minted}{Haskell}
+(paragraph e v o c g) == Edge
+  where
+    e = Miss
+    v x = if f x == s then Tail else Miss
+    o _ _ x y = case x of
+      Miss -> y
+      Tail -> max Tail y
+      Edge -> Edge
+    c _ b x y = case x of
+      Miss -> y
+      Tail ->
+        if foldg False (\x -> f x == t) (||) (||) y
+        then Edge
+        else Tail
+      Edge -> Edge
+\end{minted}
+
+The next section will show that this is possible for a strict subclass of paramorphisms, and section \ref{sec:defor-para} will show a possible implementation.
+
+\subsection{What can we fuse}
+
+\subsection{Deforestation for paramorphisms}
+\label{sec:defor-para}
+We will again adapt the work of of Gill and al. \cite{Gill:1993:SCD:165180.165214}, this time for paramorphisms.
 
 \begin{acks}
 TODO

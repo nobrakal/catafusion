@@ -79,8 +79,25 @@ Recursion schemes are almost everywhere in functional programming. They were pop
 A \emph{catamorphisms} generalize a fold on a recursive structure. For example, the catamorphism of lists is the so-called \minline{foldr}.
 \begin{minted}{Haskell}
 foldr :: (a -> b -> b) -> b -> [a] -> b
+foldr k z = go
+  where
+    go []     = z
+    go (y:ys) = y `k` go ys
+
 \end{minted}
 TODO
+
+A \emph{paramorphism} allow the combination function to have a look on the unconsummed part of the structure (imitating the full power of recursion). It can be defined for lists as
+
+\begin{minted}{Haskell}
+para :: (a -> [a] -> b -> b) -> b -> [a] -> b
+para k z = go
+  where
+    go []     = z
+    go (y:ys) = k y ys (go ys)
+\end{minted}
+
+TODO equivalence para/foldr
 
 \subsection{Anamorphisms and apomorphisms}
 TODO
@@ -103,10 +120,11 @@ foldr (c . f) e xs
 \end{minted}
 The above expression will go through the list only once.
 
-Note that the rewriting operation we made in this example is not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \minline{map}. This concept can be simply generalized to recursive structure, and we will show it in the next section.
+Note that the rewriting operation we made in this example is not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \minline{map}. This concept can be simply generalized to recursive structure, as we will show in the next section.
 
 \section{Deforestation on recursive types}
 \subsection{Definition}
+\label{sec:defi}
 Recursive types can be defined as \emph{least fixed point} TODO REF, using the \minline{Fix} data-type:
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
@@ -134,7 +152,7 @@ cata :: Functor f => (f b -> b) -> Fix f -> b
 cata f = c where c = f . fmap c . unfix
 \end{minted}
 
-For example, \minline{(List a)} from the above example, once can write \minline{foldr}:
+For example, \minline{(List a)} from the above example, one can write \minline{foldr}:
 \begin{minted}{Haskell}
 foldr :: (a -> b -> b) -> b -> [a] -> b
 foldr c e = cata go
@@ -154,6 +172,8 @@ type Cata f = forall b. (f b -> b) -> b
 buildR :: Cata f -> Fix f
 buildR g = g Fix
 \end{minted}
+
+The argument of \minline{buildR} is TODO
 
 Now, we have the lovely property that:
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
@@ -193,8 +213,6 @@ Now, our rule will also target \minline{cata}, do we also add an \verb|INLINE| p
 {-# INLINE [0] cata #-}
 \end{minted}
 
-TODO WHY 0
-
 Now we can safely add the rule:
 \begin{minted}{Haskell}
 type Cata f = forall b. (f b -> b) -> b
@@ -232,8 +250,39 @@ type Cata f = forall b. (f b -> b) -> b
 #-}
 \end{minted}
 
-\subsection{Examples}
-TODO
+\subsection{Example}
+The \verb|foldr/build| rule is now just a particular case, using:
+\begin{minted}{haskell}
+map :: (a -> b) -> List a -> List b
+map f xs = buildR 
+  (\n ->
+    let go x = case x of
+      NilF -> n NilF
+      ConsF a b -> n (ConsF (f a) b) in
+    cata go xs)
+\end{minted}
+
+The expression
+\begin{minted}{Haskell}
+	foldr c e (map f xs)
+\end{minted}
+(with \minline{foldr} defined as in section \ref{sec:defi}) will first be rewritten (only by inlining) as:
+\begin{minted}{haskell}
+cata go' (buildR 
+  (\n ->
+    let go x = case x of
+      NilF -> n NilF
+      ConsF a b -> n (ConsF (f a) b) in
+    cata go xs))
+\end{minted}
+
+With the \verb|cata/buildR| this will be rewritten to:
+\begin{minted}{haskell}
+let go x = case x of
+  NilF -> go' NilF
+  ConsF a b -> go' (ConsF (f a) b) in
+cata go xs
+\end{minted}
 
 \subsection{Paramorphism for recursive types}
 \label{sec:para-rec}
@@ -241,7 +290,8 @@ As far as we did, we worked only on catamorphisms. How can we implement paramorp
 
 The usual way is with \minline{para}:
 \begin{minted}{Haskell}
-para :: Functor f => (f (Fix f, a) -> a) -> Fix f -> a
+para ::
+  Functor f => (f (Fix f, a) -> a) -> Fix f -> a
 para t = p
   where
     p = t . fmap ((,) <*> p) . unfix
@@ -328,6 +378,9 @@ instance Applicative Graph where
 instance Monad Graph where
   return = pure
   g (>>=) f = foldg Empty f Overlay Connect
+  
+hasEdge :: Eq a => a -> Graph a -> Bool
+hasEdge s = foldg False ((==) s) (||) (||)
 \end{minted}
 \caption{A part of the Alga API}
 \end{figure*}
@@ -355,6 +408,10 @@ It feels that deforestation can happen, and convert this expression to
 The next section will show that this is possible for a strict subclass of paramorphisms, and section \ref{sec:defor-para} will show a possible implementation.
 
 \subsection{What can we fuse}
+
+As denoted by Domínquez and al. \cite{paramorphismFusion}, we have to be careful when trying to do fusion on paramorphism.
+
+TODO
 
 \subsection{Deforestation for paramorphisms}
 \label{sec:defor-para}

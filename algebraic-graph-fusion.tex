@@ -103,7 +103,7 @@ foldr (c . f) e xs
 \end{minted}
 The above expression will go through the list only once.
 
-Note that the rewriting operation we made in this example is not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \minline{map}. This concept can be simply generalized to recursive structure, and we will show in the next section.
+Note that the rewriting operation we made in this example is not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \minline{map}. This concept can be simply generalized to recursive structure, and we will show it in the next section.
 
 \section{Deforestation on recursive types}
 \subsection{Definition}
@@ -111,7 +111,7 @@ Recursive types can be defined as \emph{least fixed point} TODO REF, using the \
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}
-It is defined with the \minline{newtype} (and not simply by a type synonym) since it calls itself, but the work of TODO will optimize this use.
+It is defined with the \minline{newtype} (and not simply by a type synonym) since it calls itself, but the work of Breitner and al \cite{Breitner:2014:SZC:2692915.2628141} will optimize this use.
 
 For example, you define the following types:
 \begin{minted}{Haskell}

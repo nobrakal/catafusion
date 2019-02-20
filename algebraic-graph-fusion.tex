@@ -410,7 +410,7 @@ The next section will show that this is possible for a strict subclass of paramo
 \subsection{What can we fuse}
 
 As denoted by Domínquez and al. \cite{paramorphismFusion}, we have to be careful when trying to do fusion on paramorphism.
-This is easily viewed on an example. Consider the following expression, using para as defined in \ref{sec:defi}:
+This is easily viewed on an example. Consider the following expression, using para for lists as defined in \ref{sec:defi}:
 \begin{minted}{Haskell}
 para
   (\x xs acc -> x + (sum xs) + acc)
@@ -428,7 +428,9 @@ para
 The \minline{+ 1} operation was duplicated! It is applied in the body of the combination function \emph{plus} on the unconsumed part of the list. Consequently, the \minline{+ 1} operation will be calculated twice to all the element of the list (except the head).
 
 This disastrous result (imagine that the \minline{+ 1} operation is replaced by a costly one) yields to a necessary restriction of what we can fuse with a paramorphism:
+The combination function need to only use \emph{either the result of the recursive call or the unconsumed part}.
 
+This can be guaranteed restraining the type of the combinations functions of \minline{paragraph}.
 TODO
 
 \subsection{Deforestation for paramorphisms}

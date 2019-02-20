@@ -297,9 +297,11 @@ para t = p
     p = t . fmap ((,) <*> p) . unfix
 \end{minted}
 
+TODO
+
 \section{Going further with algebraic graphs}
-As pointed out in TODO, the \verb|Fix| method is not ideal at all and prevent some deforestation to be made.
-However, we can do these optimizations for recursive functions, and we will show how.
+As pointed out in the precedent section, the \verb|Fix| method is not ideal at all and prevent some deforestation to be made.
+However, we can do these optimizations for recursive functions, and we will show how. Note that this method can virtually be adjusted to any recursive type.
 
 As an example, we will be working on algebraic graphs, REF
 \begin{minted}{Haskell}
@@ -405,7 +407,7 @@ It feels that deforestation can happen, and convert this expression to
       Edge -> Edge
 \end{minted}
 
-The next section will show that this is possible for a strict subclass of paramorphisms, and section \ref{sec:defor-para} will show a possible implementation.
+The next section will show that this is possible for a strict subclass of paramorphisms and section \ref{sec:defor-para} will show a possible implementation.
 
 \subsection{What can we fuse}
 
@@ -430,9 +432,33 @@ The \minline{+ 1} operation was duplicated! It is applied in the body of the com
 This disastrous result (imagine that the \minline{+ 1} operation is replaced by a costly one) yields to a necessary restriction of what we can fuse with a paramorphism:
 The combination function need to only use \emph{either the result of the recursive call or the unconsumed part}.
 
-This can be guaranteed restraining the type of the combinations functions of \minline{paragraph}.
-TODO
+This can be guaranteed restraining the type of the combinations functions of \minline{paragraph} to ensure that combinations functions \emph{does not} use both the recursive call and the unconsumed part of the structure.
 
+Let us try to do this for \minline{Graph}.
+One possibility is to use a type
+\begin{minted}{Haskell}
+type Combination a b =
+  Either
+    (b -> (b -> b) (Graph a -> b))
+    (Graph a -> (b -> b) (Graph a -> b))
+\end{minted}
+
+That either use the left recursive call and decide to use the right recursive call or the right unconsumed part of the graph, or use the left unconsumed part and decide to use either the right recursive call or the right unconsumed part.
+
+Sadly, this type "encapsulate" the work made on both graphs part TODO EXPLAIN WHY, AND WHY IT IS A PROBLEM
+
+So we will use a less classy approach, but a working one:
+\begin{minted}{Haskell}
+data Combination a b =
+    B (b -> b -> b)
+  | L (b -> Bool, 
+       b -> b -> b, 
+       b -> Graph a -> b)
+  | R (Graph a -> Bool, 
+       Graph a -> b -> b,
+       Graph a -> Graph a -> b)
+\end{minted}
+TODO
 \subsection{Deforestation for paramorphisms}
 \label{sec:defor-para}
 We will again adapt the work of of Gill and al. \cite{Gill:1993:SCD:165180.165214}, this time for paramorphisms.
@@ -445,3 +471,4 @@ TODO
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{publications}
 \end{document}
+ 

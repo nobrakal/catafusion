@@ -1,0 +1,177 @@
+%!TEX root = fusion.tex
+
+\subsection{Definition}
+\label{sec:defi}
+Recursive types can be defined as \emph{least fixed point} TODO REF, using the \minline{Fix} data-type:
+\begin{minted}{Haskell}
+newtype Fix f = Fix (f (Fix f))
+\end{minted}
+It is defined with the \minline{newtype} (and not simply by a type synonym) since it calls itself, but the work of Breitner and al \cite{Breitner:2014:SZC:2692915.2628141} will optimize this use.
+
+For example, you define the following types:
+\begin{minted}{Haskell}
+data ListF a b =
+    Nil
+  | Cons a b
+  
+data TreeF a b =
+    EmptyF
+  | LeafF a
+  | NodeF b b
+  
+type List a = Fix (ListF a)
+type Tree a = Fix (Tree a)
+\end{minted}
+
+The definition of a type in term of \minline{Fix} allows a straightforward implementation of \minline{cata}, a high-order function for catamorphisms, provided that the fixed structure is a functor:
+\begin{minted}{Haskell}
+cata :: Functor f => (f b -> b) -> Fix f -> b
+cata f = c where c = f . fmap c . unfix
+\end{minted}
+
+For example, \minline{(List a)} from the above example, one can write \minline{foldr}:
+\begin{minted}{Haskell}
+foldr :: (a -> b -> b) -> b -> [a] -> b
+foldr c e = cata go
+  where
+    go NilF = e
+    go (ConsF a b) = c a b
+\end{minted}
+
+\subsection{The idea}
+Deforestation can be implemented on recursive types imitating the work of Gill and al. \cite{Gill:1993:SCD:165180.165214}.
+
+Applying a recursive structure to \minline{cata go} has just the effect to replace every occurrence of \minline{Fix} by \minline{go} in the structure. Consequently, the idea is to abstract structure-producing functions with respect to \minline{Fix}. This is done using \minline{buildR}.
+
+\begin{minted}{Haskell}
+type Cata f = forall b. (f b -> b) -> b
+
+buildR :: Cata f -> Fix f
+buildR g = g Fix
+\end{minted}
+
+The argument of \minline{buildR} is TODO
+
+Now, we have the lovely property that:
+$$cata\ go\ (buildR\ g)\ =\ g\ go$$
+
+This is exactly what we want: using the right-side of the equation \emph{does not}
+build an intermediate structure.
+
+\subsubsection{Validity}
+Again, adapting the work of Gill and al. \cite{Gill:1993:SCD:165180.165214}, te validity of the above rule is guaranteed by the type.
+
+\begin{theorem}
+Using
+\begin{itemize}
+	\item $g : \forall\ b.\ (f b \to b) \to b$
+	\item $go : f a \to a $
+\end{itemize}
+$$cata\ go\ (buildR\ g)\ =\ g\ go$$
+\end{theorem}
+\begin{proof}
+	TODO
+\end{proof}
+
+\subsection{Implementation}
+The implementation is pretty straightforward using GHC's rewrite rules described in \cite{pbr}. A rewrite rule consist in a name, maybe a phase to run and what to rewrite. TODO\\
+GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to control when the rules are firing and when functions are inlined.
+
+We want to have our rules compatible with those for lists already in place (the \verb|foldr/build| of \cite{Gill:1993:SCD:165180.165214}). They all target the \minline{bind} (defined in\verb|GHC.Base|) functions that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2.
+
+Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add an 
+\begin{minted}{Haskell}
+{-# INLINE [1] buildR #-}
+\end{minted}
+pragma, to ensure that \minline{buildR} is not inlined too quickly. Note that we force the inlining by using \verb|INLINE| and not only \verb|NOINLINE|, but this is a good idea since high-order functions like \minline{buildR} generally benefit from inlining. 
+
+Now, our rule will also target \minline{cata}, do we also add an \verb|INLINE| pragma to it.
+\begin{minted}{Haskell}
+{-# INLINE [0] cata #-}
+\end{minted}
+
+Now we can safely add the rule:
+\begin{minted}{Haskell}
+type Cata f = forall b. (f b -> b) -> b
+{-# RULES
+"cata/buildR" forall (f :: t b -> b) (g :: Cata t).
+  cata f (buildR g) = g f
+ #-}
+\end{minted}
+This rule is genuinely replacing all occurrences of \minline{cata f (buildR g)} by \minline{g f} \emph{when types matches}, that is when the argument of \minline{buildR} are allowing fusion.
+
+\subsection{Rewrite unneeded destructions}
+All our work if focused on destructing structures. It is working great but can have unwanted implications. Consider the following code, implementing \minline{bind} for recursive trees:
+
+\begin{minted}{Haskell}
+bind :: (a -> Tree b) -> Tree a -> Tree b
+bind f t = buildR
+  (\u -> cata
+    (\x ->
+      case x of
+        EmptyF -> u EmptyF
+        LeafF x -> cata u (f x)
+        NodeF a b -> u (NodeF a b))
+    t)
+\end{minted}
+
+So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because we can replace \minline{u} by an other function than \minline{Fix} TODO EXPLAIN MORE.
+
+The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner and al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned and we can target the function that replace \minline{Fix}: \minline{coerce}.
+
+\begin{minted}{Haskell}
+type Cata f = forall b. (f b -> b) -> b
+{-# RULES
+"cata/id" forall (g :: Fix f)
+  cata coerce g = g
+#-}
+\end{minted}
+
+\subsection{Example}
+The \verb|foldr/build| rule is now just a particular case, using:
+\begin{minted}{haskell}
+map :: (a -> b) -> List a -> List b
+map f xs = buildR 
+  (\n ->
+    let go x = case x of
+      NilF -> n NilF
+      ConsF a b -> n (ConsF (f a) b) in
+    cata go xs)
+\end{minted}
+
+The expression
+\begin{minted}{Haskell}
+	foldr c e (map f xs)
+\end{minted}
+(with \minline{foldr} defined as in section \ref{sec:defi}) will first be rewritten (only by inlining) as:
+\begin{minted}{haskell}
+cata go' (buildR 
+  (\n ->
+    let go x = case x of
+      NilF -> n NilF
+      ConsF a b -> n (ConsF (f a) b) in
+    cata go xs))
+\end{minted}
+
+With the \verb|cata/buildR| this will be rewritten to:
+\begin{minted}{haskell}
+let go x = case x of
+  NilF -> go' NilF
+  ConsF a b -> go' (ConsF (f a) b) in
+cata go xs
+\end{minted}
+
+\subsection{Paramorphism for recursive types}
+\label{sec:para-rec}
+As far as we did, we worked only on catamorphisms. How can we implement paramorphisms?
+
+The usual way is with \minline{para}:
+\begin{minted}{Haskell}
+para ::
+  Functor f => (f (Fix f, a) -> a) -> Fix f -> a
+para t = p
+  where
+    p = t . fmap ((,) <*> p) . unfix
+\end{minted}
+
+TODO

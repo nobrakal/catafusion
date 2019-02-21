@@ -1,0 +1,165 @@
+%!TEX root = fusion.tex
+
+As pointed out in the precedent section, the \verb|Fix| method is not ideal at all and prevent some deforestation to be made.
+However, we can do these optimizations for recursive functions, and we will show how. Note that this method can virtually be adjusted to any recursive type.
+
+As an example, we will be working on algebraic graphs, REF
+\begin{minted}{Haskell}
+data Graph a =
+    Empty
+  | Vertex a
+  | Overlay (Graph a) (Graph a)
+  | Connect (Graph a) (Graph a)
+\end{minted}
+
+Catamorphisms can be easily defined for algebraic graphs, using REF:
+\begin{minted}{Haskell}
+foldg :: b -> (a -> b)
+      -> (b -> b -> b)  -> (b -> b -> b) 
+      -> Graph a -> b
+foldg e v o c = go
+  where
+    go Empty = e
+    go (Vertex x) = v x
+    go (Overlay a b) = o (go a) (go b)
+    go (Connect a b) = c (go a) (go b)
+\end{minted}
+
+Paramorphisms can be defined following almost the same way:
+\begin{minted}{Haskell}
+paragraph :: b -> (a -> b) 
+          -> (Graph a -> Graph a -> b -> b -> b) 
+          -> (Graph a -> Graph a -> b -> b -> b) 
+          -> Graph a -> b
+paragraph e v o c = go
+  where
+    go Empty = e
+    go (Vertex x) = v x
+    go (Overlay a b) = o a b (go a) (go b)
+    go (Connect a b) = c a b (go a) (go b)
+\end{minted}
+
+This is exactly what we wanted and better than if made with \minline{Fix} in section \ref{sec:para-rec}: combinations functions \minline{o} and \minline{c} have a direct access of the unconsumed part of the structure.
+
+\subsection{The case of hasEdge}
+
+This function allows us to define an useful paramorphism on graphs, the \minline{hasEdge} function that test if an edge is in a graph:
+
+\begin{minted}{Haskell}
+hasEdge :: Eq a => a -> a -> Graph a -> Bool
+hasEdge s t g = (paragraph e v o c g) == Edge
+  where
+    e = Miss
+    v x = if x == s then Tail else Miss
+    o _ _ x y = case x of
+      Miss -> y
+      Tail -> max Tail y
+      Edge -> Edge
+    c _ b x y = case x of
+       Miss -> y
+       Tail -> if hasVertex t b then Edge else Tail
+       Edge -> Edge
+\end{minted}
+
+Note that this function is \emph{strictly} a paramorphism: it uses directly an unconsumed part of the graph (inside \minline{c}).
+
+Now consider the following expression:
+\begin{minted}{Haskell}
+hasEdge s t (bind f g)
+\end{minted}
+
+\begin{figure*}
+\begin{minted}{Haskell}
+instance Functor Graph where
+  fmap f = foldg Empty (Vertex . f) Overlay Connect
+
+instance Applicative Graph where
+  pure = Vertex
+  (<*>) = f >>= (<$> x)
+
+instance Monad Graph where
+  return = pure
+  g (>>=) f = foldg Empty f Overlay Connect
+  
+hasEdge :: Eq a => a -> Graph a -> Bool
+hasEdge s = foldg False ((==) s) (||) (||)
+\end{minted}
+\caption{A part of the Alga API}
+\end{figure*}
+
+
+It feels that deforestation can happen, and convert this expression to
+\begin{minted}{Haskell}
+(paragraph e v o c g) == Edge
+  where
+    e = Miss
+    v x = if f x == s then Tail else Miss
+    o _ _ x y = case x of
+      Miss -> y
+      Tail -> max Tail y
+      Edge -> Edge
+    c _ b x y = case x of
+      Miss -> y
+      Tail ->
+        if foldg False (\x -> f x == t) (||) (||) y
+        then Edge
+        else Tail
+      Edge -> Edge
+\end{minted}
+
+The next section will show that this is possible for a strict subclass of paramorphisms and section \ref{sec:defor-para} will show a possible implementation.
+
+\subsection{What can we fuse}
+
+As denoted by Domínquez and al. \cite{paramorphismFusion}, we have to be careful when trying to do fusion on paramorphism.
+This is easily viewed on an example. Consider the following expression, using para for lists as defined in \ref{sec:defi}:
+\begin{minted}{Haskell}
+para
+  (\x xs acc -> x + (sum xs) + acc)
+  (map (+ 1) list)
+\end{minted}
+
+One can think that this is a good idea to fuse the list traversal of \minline{map} with the destruction of \minline{para}. Sadly, this leads to an issue:
+
+\begin{minted}{Haskell}
+para
+  (\x xs acc -> (x + 1) + (sum (map +1 xs)) + acc)
+  list
+\end{minted}
+
+The \minline{+ 1} operation was duplicated! It is applied in the body of the combination function \emph{plus} on the unconsumed part of the list. Consequently, the \minline{+ 1} operation will be calculated twice to all the element of the list (except the head).
+
+This disastrous result (imagine that the \minline{+ 1} operation is replaced by a costly one) yields to a necessary restriction of what we can fuse with a paramorphism:
+The combination function need to only use \emph{either the result of the recursive call or the unconsumed part}.
+
+This can be guaranteed restraining the type of the combinations functions of \minline{paragraph} to ensure that combinations functions \emph{does not} use both the recursive call and the unconsumed part of the structure.
+
+Let us try to do this for \minline{Graph}.
+One possibility is to use a type
+\begin{minted}{Haskell}
+type Combination a b =
+  Either
+    (b -> (b -> b) (Graph a -> b))
+    (Graph a -> (b -> b) (Graph a -> b))
+\end{minted}
+
+That either use the left recursive call and decide to use the right recursive call or the right unconsumed part of the graph, or use the left unconsumed part and decide to use either the right recursive call or the right unconsumed part.
+
+Sadly, this type "encapsulate" the work made on both graphs part TODO EXPLAIN WHY, AND WHY IT IS A PROBLEM
+
+So we will use a less classy approach, but a working one:
+\begin{minted}{Haskell}
+data Combination a b =
+    B (b -> b -> b)
+  | L (b -> Bool, 
+       b -> b -> b, 
+       b -> Graph a -> b)
+  | R (Graph a -> Bool, 
+       Graph a -> b -> b,
+       Graph a -> Graph a -> b)
+\end{minted}
+TODO
+\subsection{Deforestation for paramorphisms}
+\label{sec:defor-para}
+We will again adapt the work of of Gill and al. \cite{Gill:1993:SCD:165180.165214}, this time for paramorphisms.
+

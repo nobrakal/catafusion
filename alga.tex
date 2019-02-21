@@ -42,37 +42,11 @@ paragraph e v o c = go
 
 This is exactly what we wanted and better than if made with \minline{Fix} in section \ref{sec:para-rec}: combinations functions \minline{o} and \minline{c} have a direct access of the unconsumed part of the structure.
 
-\subsection{The case of hasEdge}
-
-This function allows us to define an useful paramorphism on graphs, the \minline{hasEdge} function that test if an edge is in a graph:
-
-\begin{minted}{Haskell}
-hasEdge :: Eq a => a -> a -> Graph a -> Bool
-hasEdge s t g = (paragraph e v o c g) == Edge
-  where
-    e = Miss
-    v x = if x == s then Tail else Miss
-    o _ _ x y = case x of
-      Miss -> y
-      Tail -> max Tail y
-      Edge -> Edge
-    c _ b x y = case x of
-       Miss -> y
-       Tail -> if hasVertex t b then Edge else Tail
-       Edge -> Edge
-\end{minted}
-
-Note that this function is \emph{strictly} a paramorphism: it uses directly an unconsumed part of the graph (inside \minline{c}).
-
-Now consider the following expression:
-\begin{minted}{Haskell}
-hasEdge s t (bind f g)
-\end{minted}
-
-\begin{figure*}
+\begin{figure}
 \begin{minted}{Haskell}
 instance Functor Graph where
-  fmap f = foldg Empty (Vertex . f) Overlay Connect
+  fmap f = 
+    foldg Empty (Vertex . f) Overlay Connect
 
 instance Applicative Graph where
   pure = Vertex
@@ -82,11 +56,35 @@ instance Monad Graph where
   return = pure
   g (>>=) f = foldg Empty f Overlay Connect
   
-hasEdge :: Eq a => a -> Graph a -> Bool
-hasEdge s = foldg False ((==) s) (||) (||)
+hasVertex :: Eq a => a -> Graph a -> Bool
+hasVertex s = foldg False ((==) s) (||) (||)
+
+hasEdge :: Eq a => a -> a -> Graph a -> Bool
+hasEdge s t g = (paragraph e v o c g) == Edge
+  where
+    e = Miss
+    v x = if x == s then Tail else Miss
+    o _ _ x y = case x of
+      Miss -> y
+      Tail -> max Tail y
+      Edge -> Edge
+      c _ b x y = case x of
+      Miss -> y
+      Tail -> 
+        if hasVertex t b then Edge else Tail
+      Edge -> Edge
 \end{minted}
 \caption{A part of the Alga API}
-\end{figure*}
+\label{fig:alga}
+\end{figure}
+
+\subsection{The case of hasEdge}
+This function allows us to define an useful paramorphism on graphs, the \minline{hasEdge} function that test if an edge is in a graph (defined in figure \ref{fig:alga}). Note that this function is \emph{strictly} a paramorphism: it uses directly an unconsumed part of the graph (inside \minline{c}).
+
+Now consider the following expression:
+\begin{minted}{Haskell}
+hasEdge s t (bind f g)
+\end{minted}
 
 It feels that deforestation can happen, and convert this expression to
 \begin{minted}{Haskell}
@@ -135,6 +133,7 @@ The combination function need to only use \emph{either the result of the recursi
 This can be guaranteed restraining the type of the combinations functions of \minline{paragraph} to ensure that combinations functions \emph{does not} use both the recursive call and the unconsumed part of the structure.
 
 \subsection{Deforestation for paramorphisms}
+\label{sec:defor-para}
 
 Let us try to do this for \minline{Graph}.
 One possibility is to use a type
@@ -149,11 +148,15 @@ That either use the left recursive call and decide to use the right recursive ca
 
 Sadly, this type "encapsulate" the work made on both graphs part TODO EXPLAIN WHY, AND WHY IT IS A PROBLEM
 
-So we will use a less classy approach, but a working one:
+So we will use a less classy approach, but a working one, the \minline{Combination} data defined in figure \ref{fig:parafus}. This is a sum type that encodes three possibilities with three constructors:
+\begin{itemize}
+\item[\minline{B.}] To encode combination functions of type \minline{(b -> b -> b)}, that is, combination functions that could work for \minline{foldg}.
+\end{itemize}
 
 TODO explain
 
 This data allows us to define a function \minline{switchCombi} (defined in figure \ref{fig:util}) that transform a \minline{(Combination a b)} into a real combination function for \minline{paragraph}.
+We will again adapt the work of of Gill and al. \cite{Gill:1993:SCD:165180.165214}, this time for paramorphisms.
 
 \begin{figure*}
 \begin{minted}{Haskell}
@@ -206,10 +209,7 @@ foldg e v o c (buildR g) = g e v (B o) (B c)
 "foldg/id" paragraphR Empty Vertex (B Overlay) (B Connect) = id
  #-}
 \end{minted}
-\caption{Some utility functions}
-\label{fig:util}
+\caption{Paramorphism fusion for algebraic graphs}
+\label{fig:parafus}
 \end{figure*}
-
-\label{sec:defor-para}
-We will again adapt the work of of Gill and al. \cite{Gill:1993:SCD:165180.165214}, this time for paramorphisms.
 

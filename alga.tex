@@ -1,9 +1,10 @@
 %!TEX root = fusion.tex
 
+\subsection{Introduction}
 As pointed out in the precedent section, the \verb|Fix| method is not ideal at all and prevent some deforestation to be made.
 However, we can do these optimizations for recursive functions, and we will show how. Note that this method can virtually be adjusted to any recursive type.
 
-As an example, we will be working on algebraic graphs, REF
+As an example, we will be working on algebraic graphs, developed by Mokhov \cite{Mokhov:2017:AGC:3156695.3122956}.
 \begin{minted}{Haskell}
 data Graph a =
     Empty
@@ -28,15 +29,15 @@ foldg e v o c = go
 Paramorphisms can be defined following almost the same way:
 \begin{minted}{Haskell}
 paragraph :: b -> (a -> b) 
-          -> (Graph a -> Graph a -> b -> b -> b) 
-          -> (Graph a -> Graph a -> b -> b -> b) 
+          -> (b -> b -> Graph a -> Graph a -> b)
+          -> (b -> b -> Graph a -> Graph a -> b)
           -> Graph a -> b
 paragraph e v o c = go
   where
     go Empty = e
     go (Vertex x) = v x
-    go (Overlay a b) = o a b (go a) (go b)
-    go (Connect a b) = c a b (go a) (go b)
+    go (Overlay a b) = o (go a) (go b) a b
+    go (Connect a b) = c (go a) (go b) a b
 \end{minted}
 
 This is exactly what we wanted and better than if made with \minline{Fix} in section \ref{sec:para-rec}: combinations functions \minline{o} and \minline{c} have a direct access of the unconsumed part of the structure.
@@ -87,7 +88,6 @@ hasEdge s = foldg False ((==) s) (||) (||)
 \caption{A part of the Alga API}
 \end{figure*}
 
-
 It feels that deforestation can happen, and convert this expression to
 \begin{minted}{Haskell}
 (paragraph e v o c g) == Edge
@@ -111,7 +111,7 @@ The next section will show that this is possible for a strict subclass of paramo
 
 \subsection{What can we fuse}
 
-As denoted by Domínquez and al. \cite{paramorphismFusion}, we have to be careful when trying to do fusion on paramorphism.
+As denoted by Domínquez and al. \cite{paramorphismFusion} TODO SECTION, we have to be careful when trying to do fusion on paramorphism.
 This is easily viewed on an example. Consider the following expression, using para for lists as defined in \ref{sec:defi}:
 \begin{minted}{Haskell}
 para
@@ -134,6 +134,8 @@ The combination function need to only use \emph{either the result of the recursi
 
 This can be guaranteed restraining the type of the combinations functions of \minline{paragraph} to ensure that combinations functions \emph{does not} use both the recursive call and the unconsumed part of the structure.
 
+\subsection{Deforestation for paramorphisms}
+
 Let us try to do this for \minline{Graph}.
 One possibility is to use a type
 \begin{minted}{Haskell}
@@ -148,18 +150,66 @@ That either use the left recursive call and decide to use the right recursive ca
 Sadly, this type "encapsulate" the work made on both graphs part TODO EXPLAIN WHY, AND WHY IT IS A PROBLEM
 
 So we will use a less classy approach, but a working one:
+
+TODO explain
+
+This data allows us to define a function \minline{switchCombi} (defined in figure \ref{fig:util}) that transform a \minline{(Combination a b)} into a real combination function for \minline{paragraph}.
+
+\begin{figure*}
 \begin{minted}{Haskell}
 data Combination a b =
     B (b -> b -> b)
-  | L (b -> Bool, 
-       b -> b -> b, 
-       b -> Graph a -> b)
-  | R (Graph a -> Bool, 
-       Graph a -> b -> b,
-       Graph a -> Graph a -> b)
+  | L (b -> Bool, b -> b -> b, b -> Graph a -> b)
+  | R (Graph a -> Bool, Graph a -> b -> b, Graph a -> Graph a -> b)
+
+switchCombi :: Combination a b -> b -> b -> Graph a -> Graph a -> b
+switchCombi (B f)            = \a b _ _ -> f a b
+switchCombi (L (pred,c1,c2)) = \a b x _ -> if pred b then c1 a b else c2 x b
+switchCombi (R (pred,c1,c2)) = \a b _ x -> if pred a then c1 a b else c2 a x
+  
+paragraphR :: b -> (a -> b) -> Combination a b -> Combination a b -> Graph a -> b
+paragraphR e v o c = paragraph e v (switchCombi o) (switchCombi c)
+{-# INLINE [0] paragraphR #-}
+
+apply2LR :: (Graph c -> Graph a) -> Combination a b -> Combination c b
+apply2LR _ (B a) = B a
+apply2LR f (L (a,b,c)) = L (a,b,\x y -> c (f x) y)
+apply2LR f (R (a,b,c)) = R (a,b,\x y -> c x (f y))
+
+composeR :: (b -> c) -> (a -> b) -> a -> c
+composeR = (.)
+{-# INLINE [0] composeR #-}
+
+-- Bind already in its "buildR" form (to avoid a rewriting circle with "buildR/bindR")
+buildBindR :: (a -> Graph b) -> Graph a -> Graph b
+buildBindR f g = 
+  buildR (\e v o c -> 
+    paragraphR e (composeR (paragraphR e v o c) f) (apply2LR bind2R o) (apply2LR bind2R c) 
+    g)
+  where
+    -- bind without rewrite rules (to avoid a rewriting circle with "buildR/bindR")
+    bind2R = foldg Empty f Overlay Connect
+    
+{-# RULES
+"buildR/bindR" forall (f::a -> Graph b) g.
+bindR g f = buildR 
+  (\e v o c -> 
+    paragraphR e (composeR (paragraphR e v o c) f) (apply2LR (buildBindR f) o) (apply2LR (buildBindR f) c) g)
+
+"foldg/buildR" forall e v o c (g :: Paragraph a).
+foldg e v o c (buildR g) = g e v (B o) (B c)
+
+-- Fuse composeR's. This occurs when two adjacent 'bindR' were rewritted into their buildR form.
+"bindR/bindR" forall c f g. composeR (composeR c f) g = composeR c (f.g)
+
+-- Rewrite identity (which can appear in the rewriting of bindR) to a much efficient one
+"foldg/id" paragraphR Empty Vertex (B Overlay) (B Connect) = id
+ #-}
 \end{minted}
-TODO
-\subsection{Deforestation for paramorphisms}
+\caption{Some utility functions}
+\label{fig:util}
+\end{figure*}
+
 \label{sec:defor-para}
 We will again adapt the work of of Gill and al. \cite{Gill:1993:SCD:165180.165214}, this time for paramorphisms.
 

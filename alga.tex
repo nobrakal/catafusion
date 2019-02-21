@@ -132,8 +132,7 @@ The combination function need to only use \emph{either the result of the recursi
 
 This can be guaranteed restraining the type of the combinations functions of \minline{paragraph} to ensure that combinations functions \emph{does not} use both the recursive call and the unconsumed part of the structure.
 
-\subsection{Deforestation for paramorphisms}
-\label{sec:defor-para}
+\subsection{Implementation}
 
 Let us try to do this for \minline{Graph}.
 One possibility is to use a type
@@ -151,12 +150,22 @@ Sadly, this type "encapsulate" the work made on both graphs part TODO EXPLAIN WH
 So we will use a less classy approach, but a working one, the \minline{Combination} data defined in figure \ref{fig:parafus}. This is a sum type that encodes three possibilities with three constructors:
 \begin{itemize}
 \item[\minline{B.}] To encode combination functions of type \minline{(b -> b -> b)}, that is, combination functions that could work for \minline{foldg}.
+\item[\minline{L.}]
+\item[\minline{R.}]
 \end{itemize}
 
 TODO explain
 
-This data allows us to define a function \minline{switchCombi} (defined in figure \ref{fig:util}) that transform a \minline{(Combination a b)} into a real combination function for \minline{paragraph}.
+This data-type allows us to define a function \minline{switchCombi} (defined in figure \ref{fig:parafus}) that transform a \minline{(Combination a b)} into a real combination function for \minline{paragraph}.
+
+\subsection{Deforestation for paramorphisms}
+\label{sec:defor-para}
+
 We will again adapt the work of of Gill and al. \cite{Gill:1993:SCD:165180.165214}, this time for paramorphisms.
+
+We introduce \minline{buildR} (in figure \ref{fig:parafus}) that, similarly to \minline{build}, encode a graph-producing function but this time \emph{using a restricted paramorphism}.
+
+
 
 \begin{figure*}
 \begin{minted}{Haskell}
@@ -201,6 +210,9 @@ bindR g f = buildR
 
 "foldg/buildR" forall e v o c (g :: Paragraph a).
 foldg e v o c (buildR g) = g e v (B o) (B c)
+
+"paragraph/buildR" forall e v o c (g :: Paragraph a).
+paragraphR e v o c (buildR g) = g e v o c
 
 -- Fuse composeR's. This occurs when two adjacent 'bindR' were rewritted into their buildR form.
 "bindR/bindR" forall c f g. composeR (composeR c f) g = composeR c (f.g)

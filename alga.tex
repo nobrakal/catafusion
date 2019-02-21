@@ -147,16 +147,14 @@ That either use the left recursive call and decide to use the right recursive ca
 
 Sadly, this type "encapsulate" the work made on both graphs part TODO EXPLAIN WHY, AND WHY IT IS A PROBLEM
 
-So we will use a less classy approach, but a working one, the \minline{Combination} data defined in figure \ref{fig:parafus}. This is a sum type that encodes three possibilities with three constructors:
+So we will use a less classy approach, but a working one, the \minline{Combination} data defined in figure \ref{fig:parafus}. This is a sum-type that encodes three possibilities with three constructors:
 \begin{itemize}
 \item[\minline{B.}] To encode combination functions of type \minline{(b -> b -> b)}, that is, combination functions that could work for \minline{foldg}.
-\item[\minline{L.}]
-\item[\minline{R.}]
+\item[\minline{L.}] To encode a function that first uses the left recursive call to decide (using a predicate) if it uses the right recursive call or the right unconsumed graph.
+\item[\minline{R.}] To encode a function that first uses the left unconsumed part to decide (using a predicate) if it uses the right recursive call or the right unconsumed graph.
 \end{itemize}
 
-TODO explain
-
-This data-type allows us to define a function \minline{switchCombi} (defined in figure \ref{fig:parafus}) that transform a \minline{(Combination a b)} into a real combination function for \minline{paragraph}.
+This effectively encodes the property we want to impose on function to fuse them. Moreover, this data-type allows us to define a function \minline{switchCombi} (defined in figure \ref{fig:parafus}) that transform a \minline{(Combination a b)} into a real combination function for \minline{paragraph}.
 
 \subsection{Deforestation for paramorphisms}
 \label{sec:defor-para}

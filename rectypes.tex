@@ -50,7 +50,7 @@ buildR :: Cata f -> Fix f
 buildR g = g Fix
 \end{minted}
 
-The argument of \minline{buildR} is TODO
+Intuitively, the argument of \minline{buildR} is a function that can, for all type \minline{b}, and given something to "perform recursion" (that is, produce a \minline{b} from \minline{f b}) can produce something of type \minline{b}.
 
 Now, we have the lovely property that:
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
@@ -115,9 +115,9 @@ bind f t = buildR
     t)
 \end{minted}
 
-So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because we can replace \minline{u} by an other function than \minline{Fix} TODO EXPLAIN MORE.
+So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by an other function than \minline{Fix}, for example, something that calculate the sum of the leaves of the tree, thus we effectively need to "destruct" the graph constructed by \minline{f}.
 
-The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner and al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned and we can target the function that replace \minline{Fix}: \minline{coerce}.
+The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner and al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned TODO GIVE SECTION REF and we can target the function that replace \minline{Fix}: \minline{coerce}.
 
 \begin{minted}{Haskell}
 type Cata f = forall b. (f b -> b) -> b

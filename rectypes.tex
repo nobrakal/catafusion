@@ -8,7 +8,7 @@ newtype Fix f = Fix (f (Fix f))
 \end{minted}
 It is defined with the \minline{newtype} (and not simply by a type synonym) since it calls itself, but the work of Breitner and al \cite{Breitner:2014:SZC:2692915.2628141} will optimize this use.
 
-For example, you define the following types:
+For example, you can define the following types:
 \begin{minted}{Haskell}
 data ListF a b =
     Nil
@@ -204,3 +204,6 @@ para t = p
 \end{minted}
 
 TODO
+
+
++ TODO relire papier PeytonJones (playing by the rules)

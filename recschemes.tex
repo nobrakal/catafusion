@@ -10,11 +10,10 @@ foldr k z = go
   where
     go []     = z
     go (y:ys) = y `k` go ys
-
 \end{minted}
 TODO
 
-A \emph{paramorphism} allow the combination function to have a look on the unconsummed part of the structure (imitating the full power of recursion). It can be defined for lists as
+A \emph{paramorphism} (introduced by Meertens \cite{Meertens1992}) allow the combination function to have a look on the unconsumed part of the structure (imitating the full power of recursion). It can be defined for lists as
 
 \begin{minted}{Haskell}
 para :: (a -> [a] -> b -> b) -> b -> [a] -> b
@@ -24,8 +23,7 @@ para k z = go
     go (y:ys) = k y ys (go ys)
 \end{minted}
 
-TODO equivalence para/foldr
-
+TODO
 \subsection{Anamorphisms and apomorphisms}
 TODO
 

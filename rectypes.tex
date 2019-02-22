@@ -189,11 +189,12 @@ toList xs =
 \end{minted}
 
 We argue that the system composed by \verb|cata/buildR| and \verb|fold/build| rules is \emph{confluent}, that is, if there is an expression where both rules can fire, the order is not important. TODO
+
 \subsection{Paramorphism for recursive types}
 \label{sec:para-rec}
 As far as we did, we worked only on catamorphisms. How can we implement paramorphisms?
 
-The usual way is with \minline{para}:
+The usual way (as in \cite{ekmett:eschems}) is with \minline{para}:
 \begin{minted}{Haskell}
 para ::
   Functor f => (f (Fix f, a) -> a) -> Fix f -> a
@@ -203,6 +204,5 @@ para t = p
 \end{minted}
 
 TODO
-
 
 + TODO relire papier PeytonJones (playing by the rules)

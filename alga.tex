@@ -55,7 +55,7 @@ The next section will show that this is possible for a strict subclass of paramo
 
 \subsection{What can we fuse}
 
-As denoted by Domínquez and al. \cite{paramorphismFusion} TODO SECTION, we have to be careful when trying to do fusion on paramorphism.
+As denoted by Domínquez et al. \cite{paramorphismFusion} TODO SECTION, we have to be careful when trying to do fusion on paramorphism.
 This is easily viewed on an example. Consider the following expression, using para for lists as defined in \ref{sec:defi}:
 \begin{minted}{Haskell}
 para
@@ -105,7 +105,7 @@ This effectively encodes the property we want to impose on function to fuse them
 \subsection{Deforestation for paramorphisms}
 \label{sec:defor-para}
 
-We will again adapt the work of of Gill and al. \cite{Gill:1993:SCD:165180.165214}, this time for paramorphisms. We introduce \minline{buildR} (in figure \ref{fig:parafus}) that, similarly to \minline{build}, encode a graph-producing function but this time \emph{using a restricted paramorphism}.
+We will again adapt the work of of Gill et al. \cite{Gill:1993:SCD:165180.165214}, this time for paramorphisms. We introduce \minline{buildR} (in figure \ref{fig:parafus}) that, similarly to \minline{build}, encode a graph-producing function but this time \emph{using a restricted paramorphism}.
 
 We have now two rules, one to fuse \minline{foldg} and \minline{buildR} and an other to fuse \minline{paragraphR} and \minline{buildR}.
 

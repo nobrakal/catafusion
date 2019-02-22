@@ -6,7 +6,7 @@ Recursive types can be defined as \emph{least fixed point} TODO REF, using the \
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}
-It is defined with the \minline{newtype} (and not simply by a type synonym) since it calls itself, but the work of Breitner and al \cite{Breitner:2014:SZC:2692915.2628141} will optimize this use.
+It is defined with the \minline{newtype} (and not simply by a type synonym) since it calls itself, but the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} will optimize this use.
 
 For example, you can define the following types:
 \begin{minted}{Haskell}
@@ -39,7 +39,7 @@ foldr c e = cata go
 \end{minted}
 
 \subsection{The idea}
-Deforestation can be implemented on recursive types imitating the work of Gill and al. \cite{Gill:1993:SCD:165180.165214}.
+Deforestation can be implemented on recursive types imitating the work of Gill et al. \cite{Gill:1993:SCD:165180.165214}.
 
 Applying a recursive structure to \minline{cata go} has just the effect to replace every occurrence of \minline{Fix} by \minline{go} in the structure. Consequently, the idea is to abstract structure-producing functions with respect to \minline{Fix}. This is done using \minline{buildR}.
 
@@ -59,7 +59,7 @@ This is exactly what we want: using the right-side of the equation \emph{does no
 build an intermediate structure.
 
 \subsubsection{Validity}
-Again, adapting the work of Gill and al. \cite{Gill:1993:SCD:165180.165214}, te validity of the above rule is guaranteed by the type.
+Again, adapting the work of Gill et al. \cite{Gill:1993:SCD:165180.165214}, te validity of the above rule is guaranteed by the type.
 
 \begin{theorem}
 Using
@@ -115,7 +115,7 @@ bind f t = buildR
     t)
 \end{minted}
 
-So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by an other function than \minline{Fix}, for example, something that calculate the sum of the leaves of the tree, thus we effectively need to "destruct" the graph constructed by \minline{f}. The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner and al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned (section 6.5) and we can target the function that replace \minline{Fix}: \minline{coerce}. 
+So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by an other function than \minline{Fix}, for example, something that calculate the sum of the leaves of the tree, thus we effectively need to "destruct" the graph constructed by \minline{f}. The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned (section 6.5) and we can target the function that replace \minline{Fix}: \minline{coerce}. 
 
 \begin{minted}{Haskell}
 type Cata f = forall b. (f b -> b) -> b

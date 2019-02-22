@@ -1,0 +1,50 @@
+%!TEX root = fusion.tex
+
+Recursion schemes are almost everywhere in functional programming. They were popularized by Meijer and al. \cite{4cec4a43c86444479dc0003182424795}.
+
+\subsection{Catamorphisms and paramorphisms}
+A \emph{catamorphisms} generalize a fold on a recursive structure. For example, the catamorphism of lists is the so-called \minline{foldr}.
+\begin{minted}{Haskell}
+foldr :: (a -> b -> b) -> b -> [a] -> b
+foldr k z = go
+  where
+    go []     = z
+    go (y:ys) = y `k` go ys
+
+\end{minted}
+TODO
+
+A \emph{paramorphism} allow the combination function to have a look on the unconsummed part of the structure (imitating the full power of recursion). It can be defined for lists as
+
+\begin{minted}{Haskell}
+para :: (a -> [a] -> b -> b) -> b -> [a] -> b
+para k z = go
+  where
+    go []     = z
+    go (y:ys) = k y ys (go ys)
+\end{minted}
+
+TODO equivalence para/foldr
+
+\subsection{Anamorphisms and apomorphisms}
+TODO
+
+\subsection{Fusion of recursive scheme - hylomorphisms}
+TODO
+
+\subsection{Deforestation}
+Deforestation is a process first introduced by Wadler \cite{WADLER1990231} and realized in Haskell by Gill and al. \cite{Gill:1993:SCD:165180.165214}. It is the idea that one can eliminate a structure produced by an anamorphism and destructed right away by a catamorphism.
+
+The first example of this concept is the expression:
+\begin{minted}{Haskell}
+foldr c e (map f xs)
+\end{minted}
+\minline{map} will destruct the original list and produce a new one, which will be destructed after with \minline{foldr}.
+
+Obviously, the above expression is equivalent to a more efficient one:
+\begin{minted}{Haskell}
+foldr (c . f) e xs
+\end{minted}
+The above expression will go through the list only once.
+
+Note that the rewriting operation we made in this example is not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \minline{map}. This concept can be simply generalized to recursive structure, as we will show in the next section.

@@ -115,9 +115,7 @@ bind f t = buildR
     t)
 \end{minted}
 
-So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by an other function than \minline{Fix}, for example, something that calculate the sum of the leaves of the tree, thus we effectively need to "destruct" the graph constructed by \minline{f}.
-
-The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner and al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned (section 6.5) and we can target the function that replace \minline{Fix}: \minline{coerce}.
+So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by an other function than \minline{Fix}, for example, something that calculate the sum of the leaves of the tree, thus we effectively need to "destruct" the graph constructed by \minline{f}. The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner and al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned (section 6.5) and we can target the function that replace \minline{Fix}: \minline{coerce}. 
 
 \begin{minted}{Haskell}
 type Cata f = forall b. (f b -> b) -> b
@@ -128,6 +126,8 @@ type Cata f = forall b. (f b -> b) -> b
 \end{minted}
 
 As a side note, this little problem induce a possible limitation but easily solved: the need for optimizations. Rewrite rules mechanism are enabled either when required by the user or where optimization is enabled; fortunately, \verb|cabal| enable it by default. Either, a problem with a direct use of \minline{build} in \minline{bind} body will introduce an unwanted and unneeded traversal of the part of the graph as showed. This is solved (and this is the solution taken by the \verb|GHC.Base| module), it to define "normally" \minline{bind}, and add a rewrite rule to rewrite it in its "build" form.
+
+Note also that, as Voigtländer \cite{Voigtlnder2008TypesFP} noticed for \minline{map}, \minline{bind} for \minline{Tree} is expressed both with \minline{buildR} and \minline{cata}, thus it can be fused with \emph{both} producers and consumers of trees.
 
 \subsection{Example}
 The \verb|foldr/build| rule is now just a particular case, using:
@@ -175,9 +175,7 @@ treeFromList xs =
       foldr (\x -> g . NodeF (cata g x)) (g EmptyF) xs)
 \end{minted}
 
-TODO EXPLAIN
-
-The reverse is also possible, TODO
+The reverse is also possible, for example to convert a fixed-point list to a natural one:
 \begin{minted}{Haskell}
 toList :: List a -> [a]
 toList xs =
@@ -190,6 +188,7 @@ toList xs =
       in cata go xs)
 \end{minted}
 
+We argue that the system composed by \verb|cata/buildR| and \verb|fold/build| rules is \emph{confluent}, that is, if there is an expression where both rules can fire, the order is not important. TODO
 \subsection{Paramorphism for recursive types}
 \label{sec:para-rec}
 As far as we did, we worked only on catamorphisms. How can we implement paramorphisms?

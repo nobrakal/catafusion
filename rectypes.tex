@@ -127,7 +127,7 @@ type Cata f = forall b. (f b -> b) -> b
 #-}
 \end{minted}
 
-As a side note, this little problem induce a possible limitation but easily solved: the need for optimizations. Rewrite rules mechanism are enabled either when required by the user or where optimization is enabled; fortunately, \verb|cabal| enable it by default. Either, a problem with a direct use of \minline{build} in \minline{bind} body will introduce an unwanted and unnedded traversal of the part of the graph as showed. This is solved (and this is the solution taken by the \verb|GHC.Base| module), it to define "normally" \minline{bind}, and add a rewrite rule to rewrite it in its "build" form.
+As a side note, this little problem induce a possible limitation but easily solved: the need for optimizations. Rewrite rules mechanism are enabled either when required by the user or where optimization is enabled; fortunately, \verb|cabal| enable it by default. Either, a problem with a direct use of \minline{build} in \minline{bind} body will introduce an unwanted and unneeded traversal of the part of the graph as showed. This is solved (and this is the solution taken by the \verb|GHC.Base| module), it to define "normally" \minline{bind}, and add a rewrite rule to rewrite it in its "build" form.
 
 \subsection{Example}
 The \verb|foldr/build| rule is now just a particular case, using:
@@ -161,6 +161,33 @@ let go x = case x of
   NilF -> go' NilF
   ConsF a b -> go' (ConsF (f a) b) in
 cata go xs
+\end{minted}
+
+\subsection{Compatibility with GHC's rules on lists}
+Our work is compatible with the one already made in the \verb|GHC.Base| and \verb|GHC.List| modules in the sense that one can write a function that destruct a list (using \verb|foldr| or any "good consumer" of lists) to a fixed point structure \emph{that can be fused with list producers and structure consumers}.
+
+Let us take an example with \minline{Tree}, by defining \minline{treeFromList} that convert a list to a degenerate tree (where each node has a leaf):
+\begin{minted}{Haskell}
+treeFromList :: [Tree a] -> Tree a
+treeFromList xs =
+  buildR
+    (\g ->
+      foldr (\x -> g . NodeF (cata g x)) (g EmptyF) xs)
+\end{minted}
+
+TODO EXPLAIN
+
+The reverse is also possible, TODO
+\begin{minted}{Haskell}
+toList :: List a -> [a]
+toList xs =
+  GHC.Base.build
+    (\c n ->
+      let go xs =
+        case xs of
+          NilF -> n
+          ConsF a b -> c a b
+      in cata go xs)
 \end{minted}
 
 \subsection{Paramorphism for recursive types}

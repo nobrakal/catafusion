@@ -146,16 +146,19 @@ Our work is compatible with the one already made in the \verb|GHC.Base| and \ver
 Let us take an example with \minline{Tree}, by defining \minline{treeFromList} that convert a list to a degenerate tree (where each node has a leaf):
 \begin{minted}{Haskell}
 treeFromList :: [Tree a] -> Tree a
-treeFromList xs =
-  buildR
-    (\g ->
-      foldr (\x -> g . NodeF (cata g x)) (g EmptyF) xs)
+treeFromList xs = buildR $ \g ->
+  foldr 
+    (\x -> g . NodeF (cata g x))
+    (g EmptyF)
+    xs
 \end{minted}
+
+\minline{treeFromlist} is made with both \minline{foldr} and \minline{buildR}, so it can fuse with both \minline{cata} or \minline{build}.
 
 The reverse is also possible, for example to convert a fixed-point list to a natural one:
 \begin{minted}{Haskell}
-toList :: List a -> [a]
-toList xs =
+flistToList :: List a -> [a]
+flistToList xs =
   GHC.Base.build
     (\c n ->
       let go xs =
@@ -165,4 +168,6 @@ toList xs =
       in cata go xs)
 \end{minted}
 
-We argue that the system composed by \verb|cata/buildR| and \verb|fold/build| rules is \emph{confluent}, that is, if there is an expression where both rules can fire, the order is not important. TODO
+\minline{treeFromlist} is made with both \minline{cata} and \minline{build}, so it can fuse with both \minline{buildR} or \minline{foldr}.
+
+It is simple to see that the system composed by \verb|cata/buildR| and \verb|fold/build| rules is \emph{strongly confluent}, that is, if there is an expression where both rules can fire, the order is not important (because both rules are just like a $\beta$-reduction with some manipulation of arguments).

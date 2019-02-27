@@ -75,7 +75,7 @@ For example, \minline{(List a)} from the above example, one can write \minline{f
 \begin{minted}{Haskell}
 foldr :: (a -> b -> b) -> b -> [a] -> b
 foldr c e = cata go
-where
-go NilF = e
-go (ConsF a b) = c a b
+  where
+    go NilF = e
+    go (ConsF a b) = c a b
 \end{minted}

@@ -1,0 +1,12 @@
+%!TEX root = fusion.tex
+
+As far as we did, we worked only on catamorphisms. How can we implement paramorphisms?
+The usual way (as in \cite{ekmett:eschems}) is with \minline{para}:
+\begin{minted}{Haskell}
+para ::
+Functor f => (f (Fix f, a) -> a) -> Fix f -> a
+para t = p
+where
+p = t . fmap ((,) <*> p) . unfix
+\end{minted}
++ TODO relire papier PeytonJones (playing by the rules)

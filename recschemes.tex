@@ -3,7 +3,7 @@
 Recursion schemes are almost everywhere in functional programming. They were popularized by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}.
 
 \subsection{Catamorphisms and paramorphisms}
-A \emph{catamorphisms} generalize a fold on a recursive structure. For example, the catamorphism of lists is the so-called \minline{foldr}.
+A \emph{catamorphism} generalize a fold on a recursive structure. For example, the catamorphism of lists is the so-called \minline{foldr}.
 \begin{minted}{Haskell}
 foldr :: (a -> b -> b) -> b -> [a] -> b
 foldr k z = go
@@ -31,15 +31,13 @@ TODO
 TODO
 
 \subsection{Deforestation}
-Deforestation is a process first introduced by Wadler \cite{WADLER1990231} and realized in Haskell by Gill et al. \cite{Gill:1993:SCD:165180.165214}. It is the idea that one can eliminate a structure produced by an anamorphism and destructed right away by a catamorphism.
+Deforestation is a process first introduced by Wadler \cite{WADLER1990231} and realized in Haskell by Gill et al. \cite{Gill:1993:SCD:165180.165214}. It is the idea that one can eliminate a structure produced by "good function" and destructed right away by a catamorphism.
 
 The first example of this concept is the expression:
 \begin{minted}{Haskell}
 foldr c e (map f xs)
 \end{minted}
-\minline{map} will destruct the original list and produce a new one, which will be destructed after with \minline{foldr}.
-
-Obviously, the above expression is equivalent to a more efficient one:
+\minline{map} will destruct the original list and produce a new one, which will be destructed after with \minline{foldr}. The key thing is that we know how map will construct the new list. Obviously, the above expression is equivalent to a more efficient one:
 \begin{minted}{Haskell}
 foldr (c . f) e xs
 \end{minted}

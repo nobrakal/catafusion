@@ -3,24 +3,20 @@
 Recursion schemes are almost everywhere in functional programming. They generalize a very common pattern: construct a structure and destruct it. They were popularized by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}. TODO INTRODUCE MORE
 
 \subsection{Catamorphisms and paramorphisms}
-A \emph{catamorphism} generalize a fold on a recursive structure. For example, the catamorphism-maker of lists is the so-called \minline{foldr}.
+A \emph{catamorphism} generalize a fold on a recursive structure. For example, catamorphisms on lists can be expressed with the so-called \minline{foldr}.
 \begin{minted}{Haskell}
 foldr :: (a -> b -> b) -> b -> [a] -> b
-foldr k z = go
-  where
-    go []     = z
-    go (y:ys) = y `k` go ys
+foldr _ z []     = z
+foldr k z (y:ys) = k y (foldr k z ys)
 \end{minted}
 TODO
 
-A \emph{paramorphism} (introduced by Meertens \cite{Meertens1992}) allow the combination function to have a look on the unconsumed part of the structure (imitating the full power of recursion). It can be defined for lists as
+A \emph{paramorphism} (introduced by Meertens \cite{Meertens1992}) allow the combination function to have a look on the unconsumed part of the structure (imitating the full power of recursion). They can be defined for lists using \minline{para}
 
 \begin{minted}{Haskell}
 para :: (a -> [a] -> b -> b) -> b -> [a] -> b
-para k z = go
-  where
-    go []     = z
-    go (y:ys) = k y ys (go ys)
+para _ z []     = z
+para k z (x:xs) = k x xs (para k z xs)
 \end{minted}
 
 TODO
@@ -29,48 +25,41 @@ An \emph{anamorphism} generalize the notion of unfolding a recursive structure, 
 For example, the anamorphism-maker of lists is the so-called \minline{unfoldr}.
 \begin{minted}{Haskell}
 unfoldr :: (b -> Maybe (a, b)) -> b -> [a]
-unfoldr f = go
-  where
-    go b =
-      case f b of
-        Just (a, new_b) -> a `c` go new_b
-        Nothing         -> n
+unfoldr f b = 
+  case f b of
+    Just (a, b') -> c a (unfoldr f b')
+    Nothing      -> n
 \end{minted}
 TODO
 
 TODO apo
 \subsection{Fusion of recursive schemes - hylomorphisms}
-A first nice result TODO
+A first nice result on this recursive schemes is that the composition of an anamoprhism with a catamorphism can be optimized to remove the need of building the intermediate structure: we then obtain an \emph{hylomorphism} (this is correclty proved by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}).
+TODO
 
 \subsection{Fixed-point types}
 \label{subsec:defi}
-Recursive types can be defined as \emph{least fixed point} TODO REF, using the \minline{Fix} data-type:
+Recursive types can be defined as \emph{least fixed point}, using the \minline{Fix} data-type:
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}
-It is defined with the \minline{newtype} (and not simply by a type synonym) since it calls itself, but the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} will optimize this use.
+\minline{Fix} directly encode recursion in types: you are giving to a parametric type itself, again and again. Note that this data-type is defined with \minline{newtype} (and not simply by a type synonym) since it calls itself, but the great work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} will optimize it away at compile time.
 
-For example, you can define the following types:
+For example, you can define, as in figure \ref{fig:listtree}
+\minline{(List a)}, isomorphic to \minline{[a]} and \minline{(Tree a)}, isomorphic to the classic recursive structure for binary trees:
 \begin{minted}{Haskell}
-data ListF a b =
-    Nil
-  | Cons a b
-
-data TreeF a b =
-    EmptyF
-  | LeafF a
-  | NodeF b b
-
-type List a = Fix (ListF a)
-type Tree a = Fix (Tree a)
+data TreeB a = 
+    Empty 
+  | Leaf a
+  | Node (Tree a) (Tree a)
 \end{minted}
 
-The definition of a type in term of \minline{Fix} allows a straightforward implementation of \minline{cata}, a high-order function for catamorphisms, provided that the fixed structure is a functor (we use the same definitions as E. Kmett in his \verb|recusrion-schemes| package \cite{ekmett:eschems}):
-\begin{minted}{Haskell}
-cata :: Functor f => (f b -> b) -> Fix f -> b
-cata f = c where c = f . fmap c . unfix
-\end{minted}
+The definition of a type in term of \minline{Fix} allows a straightforward implementation of \minline{cata}, a high-order function for catamorphisms, provided that the fixed structure is a functor:
 
+\begin{minted}{Haskell}
+cata :: Functor f => (f a -> a) -> Fix f -> a
+cata f (Fix x) = f (fmap (cata f) x)
+\end{minted}
 For example, \minline{(List a)} from the above example, one can write \minline{foldr}:
 \begin{minted}{Haskell}
 foldr :: (a -> b -> b) -> b -> [a] -> b
@@ -79,3 +68,46 @@ foldr c e = cata go
     go NilF = e
     go (ConsF a b) = c a b
 \end{minted}
+
+How \minline{cata} is working? As any fold on any structure! Given a recursive structure, your will firstly destruct any substructure, and then apply a function to the result. Note that a better implementation is using the same definitions as E. Kmett in his \verb|recusrion-schemes| package \cite{ekmett:eschems}:
+
+\begin{minted}{Haskell}
+cata :: Functor f => (f b -> b) -> Fix f -> b
+cata f = c where c (Fix x) = f (fmap c x)
+\end{minted}
+
+where the recursive step was specialized to the \minline{f} argument.
+
+\begin{figure}
+\begin{minted}{Haskell}
+data ListF a b =
+    NilF
+  | ConsF a b
+  
+instance Functor (ListF a) where
+  fmap _ NilF        = Nil
+  fmap f (ConsF a b) = Cons a (f b)
+
+type List a = Fix (List a)
+
+cons :: a -> List a -> List a
+cons x xs = Fix (ConsF x xs)
+
+nil :: List a
+nil = Fix NilF
+
+data TreeF a b =
+    EmptyF
+  | LeafF a
+  | NodeF b b
+
+instance Functor (TreeF a) where
+  fmap _ EmptyF      = EmptyF
+  fmap _ (LeafF x)   = LeafF x
+  fmap f (NodeF a b) = NodeF (f a) (f b)
+
+type Tree a = Fix (TreeF a)
+\end{minted}
+\label{fig:listtree}
+\caption{Examples of recursive types: lists and binary trees}
+\end{figure}

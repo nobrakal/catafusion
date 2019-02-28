@@ -5,8 +5,21 @@ The usual way (as in \cite{ekmett:eschems}) is with \minline{para}:
 \begin{minted}{Haskell}
 para ::
 Functor f => (f (Fix f, a) -> a) -> Fix f -> a
-para t = p
-where
-p = t . fmap ((,) <*> p) . unfix
+para f = c
+  where
+    c (Fix x) = f (fmap (\x -> (x,p x)) x)
 \end{minted}
+
+What is happening here? As with \minline{cata}, when we are trying to destruct a recursive structure, we are doing the recursive step plus giving a copy of the original data.
+For example, we can encode a classic paramorphism, where we gives the list of proper suffixes of a list:
+\begin{minted}{Haskell}
+suff :: List a -> List (List a)
+suff = para go
+  where
+    go NilF = nil
+    go (ConsF x (xs,b)) = cons (cons x xs) b
+\end{minted}
+
+
+
 + TODO relire papier PeytonJones (playing by the rules)

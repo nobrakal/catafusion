@@ -27,15 +27,19 @@ buildR :: Cata f -> Fix f
 buildR g = g Fix
 \end{minted}
 
-Intuitively, the argument of \minline{buildR} is a function that can, for all type \minline{b}, and given something to "perform recursion" (that is, produce a \minline{b} from a \minline{(f b)}) can produce something of type \minline{b}.
+Intuitively, the argument of \minline{buildR} is a function that can, for all type \minline{b}, and given something to "perform recursion" (that is, produce a \minline{b} from a \minline{(f b)}) can produce something of type \minline{b}. For example, you can use \minline{buildR} to define \minline{ana}:
+\begin{minted}{Haskell}
+ana :: Functor f => (b -> f b) -> b -> Fix f
+ana f b = buildR
+  (\comb -> let c =  comb . fmap c . f in c b)
+\end{minted}
 
+\subsubsection{Validity}
 Now, we have the lovely property that:
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 
-This is exactly what we want: using the right-side of the equation \emph{does not}
-build an intermediate structure.
+This is exactly what we want: using the right-side of the equation \emph{does not} build an intermediate structure.
 
-\subsubsection{Validity}
 Again, adapting the work of Gill et al. \cite{Gill:1993:SCD:165180.165214}, te validity of the above rule is guaranteed by the type.
 
 \begin{theorem}

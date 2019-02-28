@@ -93,9 +93,21 @@ mapt f t = bind t (\x -> fix (LeafF f x))
 \end{figure}
 
 \subsection{Validity}
-As noticed Domínguez et al. \cite{paramorphismFusion} this is not always a good idea. Consider the previous example example with proper suffixes of a list.
-
-TODO
+As noticed Domínguez et al. \cite{paramorphismFusion} fusing paramorphisms with other things is not always a good idea. Consider the previous example example with proper suffixes of a list, but again composed with a map:
+\begin{minted}{Haskell}
+suff (map f xs)
+\end{minted}
+\noindent If we try to fuse the two functions, we have
+\begin{minted}{Haskell}
+let go x =
+  case x of
+    NilF -> nil
+    ConsF x (xs,b) -> 
+      cons (map f (cons x xs)) b
+  in para go xs
+\end{minted}
+\noindent The \minline{map} happen for each suffixes! We clearly not want that.
+The problem here is that the combination function used \emph{both} the recursive call and the unconsumed part of the structure, which leads to a duplication of the work.
 \subsection{Implementation}
 TODO
 % + TODO relire papier PeytonJones (playing by the rules)

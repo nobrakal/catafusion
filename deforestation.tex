@@ -141,7 +141,7 @@ That is exactly what we wanted !
 \subsection{Compatibility with GHC's rules on lists}
 Our work is compatible with the one already made in the \verb|GHC.Base| and \verb|GHC.List| modules (described in the work of Peyton Jones et al. \cite{playing-by-the-rules-rewriting-as-a-practical-optimisation-technique-in-ghc} ) in the sense that one can write a function that destruct a list (using \verb|foldr| or any "good consumer" of lists) to a fixed point structure \emph{that can be fused with list producers and structure consumers}.
 
-Let us take an example with \minline{Tree}, by defining \minline{treeFromList} that convert a list to a degenerate tree (where each node has a leaf):
+Let us take an example with \minline{Tree}, by defining\\ \minline{treeFromList} that convert a list to a degenerate tree (where each node has a leaf):
 \begin{minted}{Haskell}
 treeFromList :: [Tree a] -> Tree a
 treeFromList xs = buildR $ \g ->

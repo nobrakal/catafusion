@@ -20,6 +20,26 @@ suff = para go
     go (ConsF x (xs,b)) = cons (cons x xs) b
 \end{minted}
 
+\subsection{Fusion for paramorphisms}
+
+Now consider this less trivial paramorphism:
+\begin{minted}{Haskell}
+data Hit = Miss | Tail | Edge deriving (Eq, Ord, Show)
+
+has2Leaves :: Eq a => a -> a -> Tree a -> Bool
+has2Leaves s t = (==) Edge . para go
+  where
+    go EmptyF = Miss
+    go (LeafF x) = if x == s then Tail else Miss
+    go (NodeF (_,a') (b,b')) =
+      case a' of
+        Miss -> b'
+        Tail -> if hasLeaf t b then Edge else Tail
+        Edge -> Edge
+\end{minted}
 
 
-+ TODO relire papier PeytonJones (playing by the rules)
+As noticed Domínguez et al. \cite{paramorphismFusion} this is not always a good idea.
+
+Consider this example:
+% + TODO relire papier PeytonJones (playing by the rules)

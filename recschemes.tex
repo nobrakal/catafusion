@@ -85,16 +85,7 @@ cata f = c where c (Fix x) = f (fmap c x)
 \end{minted}
 
 where the recursive step was specialized to the \minline{f} argument.
-%
-%A \emph{paramorphism} (introduced by Meertens \cite{Meertens1992}) allow the combination function to have a look on the unconsumed part of the structure (imitating the full power of recursion). They can be defined for lists using \minline{para}
 
-%\begin{minted}{Haskell}
-%para :: (a -> [a] -> b -> b) -> b -> [a] -> b
-%para _ z []     = z
-%para k z (x:xs) = k x xs (para k z xs)
-%\end{minted}
-
-%TODO
 \subsection{Anamorphisms}
 An \emph{anamorphism} generalize the notion of unfolding a recursive structure, that is, producing a structure from a seed value.
 For example, anamorphisms on lists can be expressed with the so-called \minline{unfoldr}.

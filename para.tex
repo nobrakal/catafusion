@@ -1,7 +1,16 @@
 %!TEX root = fusion.tex
+\subsection{Paramorphisms}
 
-As far as we did, we worked only on catamorphisms. How can we implement paramorphisms?
-The usual way (as in \cite{ekmett:eschems}) is with \minline{para}:
+As far as we did, we worked only on catamorphisms. These are not really satisfying to define recursive functions that also use the unconsumed part of the structure. A \emph{paramorphism} (introduced by Meertens \cite{Meertens1992}) are a direct response, as it allows the combination function to have a look on the unconsumed part of the structure (imitating the full power of recursion).
+
+They can be defined for lists using \minline{para}
+\begin{minted}{Haskell}
+para :: (a -> [a] -> b -> b) -> b -> [a] -> b
+para _ z []     = z
+para k z (x:xs) = k x xs (para k z xs)
+\end{minted}
+
+Again, we can also express paramorphisms with types defined in terms of \minline{Fix}, but using a little trick: The usual way (as in the \verb|recursion-schemes| package \cite{ekmett:eschems}) is with \minline{para}:
 \begin{minted}{Haskell}
 para ::
 Functor f => (f (Fix f, a) -> a) -> Fix f -> a
@@ -11,7 +20,7 @@ para f = c
 \end{minted}
 
 What is happening here? As with \minline{cata}, when we are trying to destruct a recursive structure, we are doing the recursive step plus giving a copy of the original data.
-For example, we can encode a classic paramorphism, where we gives the list of proper suffixes of a list:
+For example, we can encode a classic paramorphism, which is giving the list of proper suffixes of a list:
 \begin{minted}{Haskell}
 suff :: List a -> List (List a)
 suff = para go
@@ -24,7 +33,8 @@ suff = para go
 
 Now consider this less trivial paramorphism:
 \begin{minted}{Haskell}
-data Hit = Miss | Tail | Edge deriving (Eq, Ord, Show)
+data Hit = Miss | Tail | Edge
+  deriving (Eq, Ord, Show)
 
 has2Leaves :: Eq a => a -> a -> Tree a -> Bool
 has2Leaves s t = (==) Edge . para go

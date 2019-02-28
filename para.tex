@@ -37,9 +37,8 @@ Imagine you are composing it with a \minline{mapt} operation (as defined in sect
 the function:
 \begin{minted}{Haskell}
 has2LeavesBind :: Eq b =>
-b -> b -> (a -> b) -> Tree a -> Bool
-has2LeavesBind u v f t =
-  has2leaves u v (mapt t f)
+  b -> b -> (a -> b) -> Tree a -> Bool
+has2LeavesBind u v f = has2leaves u v . maptf
 \end{minted}
 \noindent is equivalent to:
 \begin{minted}{Haskell}

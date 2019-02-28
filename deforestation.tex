@@ -60,11 +60,11 @@ GHC is performing 3 distinct phases where it tries to apply rewrite rules and it
 
 We want to have our rules compatible with those for lists already in place (the \verb|foldr/build| of \cite{Gill:1993:SCD:165180.165214}). They all target the \minline{bind} (defined in\verb|GHC.Base|) functions that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2.
 
-Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add an 
+Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add an
 \begin{minted}{Haskell}
 {-# INLINE [1] buildR #-}
 \end{minted}
-pragma, to ensure that \minline{buildR} is not inlined too quickly. Note that we force the inlining by using \verb|INLINE| and not only \verb|NOINLINE|, but this is a good idea since high-order functions like \minline{buildR} generally benefit from inlining. 
+pragma, to ensure that \minline{buildR} is not inlined too quickly. Note that we force the inlining by using \verb|INLINE| and not only \verb|NOINLINE|, but this is a good idea since high-order functions like \minline{buildR} generally benefit from inlining.
 
 Now, our rule will also target \minline{cata}, do we also add an \verb|INLINE| pragma to it.
 \begin{minted}{Haskell}
@@ -97,7 +97,7 @@ bind t f = buildR
     t)
 \end{minted}
 
-So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by an other function than \minline{Fix}, for example, something that calculate the sum of the leaves of the tree, thus we effectively need to "destruct" the graph constructed by \minline{f}. The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned (section 6.5 of the previously mentioned article) and we can target the function that replace \minline{Fix}: \minline{coerce}. 
+So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by an other function than \minline{Fix}, for example, something that calculate the sum of the leaves of the tree, thus we effectively need to "destruct" the graph constructed by \minline{f}. The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned (section 6.5 of the previously mentioned article) and we can target the function that replace \minline{Fix}: \minline{coerce}.
 
 \begin{minted}{Haskell}
 type Cata f = forall b. (f b -> b) -> b
@@ -149,7 +149,7 @@ That is exactly what we wanted!
 We can define \minline{ana} in term of \minline{buildR}:
 \begin{minted}{Haskell}
 ana :: Functor f => (b -> f b) -> b -> Fix f
-ana f b = buildR $ \comb -> 
+ana f b = buildR $ \comb ->
   let c = comb . fmap c . f in c b
 \end{minted}
 
@@ -162,7 +162,7 @@ Let us take an example with \minline{Tree}, by defining\\ \minline{treeFromList}
 \begin{minted}{Haskell}
 treeFromList :: [Tree a] -> Tree a
 treeFromList xs = buildR $ \g ->
-  foldr 
+  foldr
     (\x -> g . NodeF (cata g x))
     (g EmptyF)
     xs

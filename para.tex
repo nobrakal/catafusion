@@ -36,19 +36,19 @@ Now consider the less trivial paramorphism \minline{has2Leaves} which search in 
 Imagine you are composing it with a \minline{mapt} operation (as defined in section \ref{fig:has2Leaves}). Then
 the function:
 \begin{minted}{Haskell}
-has2LeavesBind :: Eq b => 
+has2LeavesBind :: Eq b =>
 b -> b -> (a -> b) -> Tree a -> Bool
-has2LeavesBind u v f t = 
+has2LeavesBind u v f t =
   has2leaves u v (mapt t f)
 \end{minted}
 \noindent is equivalent to:
 \begin{minted}{Haskell}
-has2LeavesBind :: Eq b => 
+has2LeavesBind :: Eq b =>
   b -> b -> (a -> b) -> Tree a -> Bool
 has2LeavesBind u v t f = Edge == para go t
   where
     go EmptyF    = Miss
-    go (LeafF x) = 
+    go (LeafF x) =
       if f x == u then Tail else Miss
     go (NodeF (_,a') (b,b')) =
       case a' of
@@ -66,7 +66,7 @@ Can we generalize the work made in section \ref{sec:rectypes} to make this work?
 \begin{minted}{Haskell}
 data Hit = Miss | Tail | Edge
   deriving (Eq, Ord, Show)
-  
+
 hasLeaf :: Eq a => a -> Tree a -> Bool
 hasLeaf s = cata go
   where
@@ -78,7 +78,7 @@ has2Leaves :: Eq a => a -> a -> Tree a -> Bool
 has2Leaves u v = (==) Edge . para go
   where
     go EmptyF = Miss
-    go (LeafF x) = 
+    go (LeafF x) =
       if x == u then Tail else Miss
     go (NodeF (_,a') (b,b')) =
       case a' of

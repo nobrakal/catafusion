@@ -13,8 +13,8 @@ newtype Fix f = Fix (f (Fix f))
 For example, you can define, as in figure \ref{fig:listtree}
 \minline{(List a)}, isomorphic to \minline{[a]} and \minline{(Tree a)}, isomorphic to the classic recursive structure for binary trees:
 \begin{minted}{Haskell}
-data TreeB a = 
-    Empty 
+data TreeB a =
+    Empty
   | Leaf a
   | Node (Tree a) (Tree a)
 \end{minted}
@@ -24,7 +24,7 @@ data TreeB a =
 data ListF a b =
     NilF
   | ConsF a b
-  
+
 instance Functor (ListF a) where
   fmap _ NilF        = Nil
   fmap f (ConsF a b) = Cons a (f b)
@@ -84,7 +84,7 @@ cata :: Functor f => (f b -> b) -> Fix f -> b
 cata f = c where c (Fix x) = f (fmap c x)
 \end{minted}
 
-\noindent 
+\noindent
 where the recursive step was specialized to the \minline{f} argument.
 
 \subsection{Anamorphisms}
@@ -92,7 +92,7 @@ An \emph{anamorphism} generalize the notion of unfolding a recursive structure, 
 For example, anamorphisms on lists can be expressed with the so-called \minline{unfoldr}.
 \begin{minted}{Haskell}
 unfoldr :: (b -> Maybe (a, b)) -> b -> [a]
-unfoldr f b = 
+unfoldr f b =
   case f b of
     Just (a, b') -> c a (unfoldr f b')
     Nothing      -> n
@@ -116,7 +116,7 @@ unfoldr f = ana go . f
 A first nice result on this recursive schemes is that the composition of an anamorphism with a catamorphism can be optimized to remove the need of building the intermediate structure: we then obtain an \emph{hylomorphism} (this is correctly proved by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}).
 Using (as in the \verb|recursion-schemes| package \cite{ekmett:eschems}):
 \begin{minted}{Haskell}
-hylo :: Functor f => 
+hylo :: Functor f =>
   (f b -> b) -> (a -> f a) -> a -> b
 hylo f g = h where h = f . fmap h . g
 \end{minted}

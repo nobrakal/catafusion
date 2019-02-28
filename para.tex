@@ -12,11 +12,11 @@ para k z (x:xs) = k x xs (para k z xs)
 
 Again, we can also express paramorphisms with types defined in terms of \minline{Fix}, but using a little trick: The usual way (as in the \verb|recursion-schemes| package \cite{ekmett:eschems}) is with \minline{para}:
 \begin{minted}{Haskell}
-para ::
-Functor f => (f (Fix f, a) -> a) -> Fix f -> a
+para :: Functor f =>
+  (f (Fix f, a) -> a) -> Fix f -> a
 para f = c
   where
-    c (Fix x) = f (fmap (\x -> (x,p x)) x)
+    c (Fix x) = f (fmap (\y -> (y,p y)) x)
 \end{minted}
 
 What is happening here? As with \minline{cata}, when we are trying to destruct a recursive structure, we are doing the recursive step plus giving a copy of the original data.
@@ -31,25 +31,72 @@ suff = para go
 
 \subsection{Fusion for paramorphisms}
 
-Now consider this less trivial paramorphism:
-\begin{minted}{Haskell}
-data Hit = Miss | Tail | Edge
-  deriving (Eq, Ord, Show)
+Now consider the less trivial paramorphism \minline{has2Leaves} which search in a binary tree if there is two distinct leaves defined in figure \ref{fig:has2Leaves}.
 
-has2Leaves :: Eq a => a -> a -> Tree a -> Bool
-has2Leaves s t = (==) Edge . para go
+Imagine you are composing it with a \minline{mapt} operation (as defined in section \ref{fig:has2Leaves}). Then
+the function:
+\begin{minted}{Haskell}
+has2LeavesBind :: Eq b => 
+b -> b -> (a -> b) -> Tree a -> Bool
+has2LeavesBind u v f t = 
+  has2leaves u v (mapt t f)
+\end{minted}
+\noindent is equivalent to:
+\begin{minted}{Haskell}
+has2LeavesBind :: Eq b => 
+  b -> b -> (a -> b) -> Tree a -> Bool
+has2LeavesBind u v t f = Edge == para go t
   where
-    go EmptyF = Miss
-    go (LeafF x) = if x == s then Tail else Miss
+    go EmptyF    = Miss
+    go (LeafF x) = 
+      if f x == u then Tail else Miss
     go (NodeF (_,a') (b,b')) =
       case a' of
         Miss -> b'
-        Tail -> if hasLeaf t b then Edge else Tail
+        Tail -> if cata go' b then Edge else Tail
         Edge -> Edge
+    go' EmptyF      = False
+    go' (LeafF x)   = x == v
+    go' (NodeF a b) = a || b
 \end{minted}
 
+Can we generalize the work made in section \ref{sec:rectypes} to make this work?
 
-As noticed Domínguez et al. \cite{paramorphismFusion} this is not always a good idea.
+\begin{figure}
+\begin{minted}{Haskell}
+data Hit = Miss | Tail | Edge
+  deriving (Eq, Ord, Show)
+  
+hasLeaf :: Eq a => a -> Tree a -> Bool
+hasLeaf s = cata go
+  where
+    go EmptyF      = False
+    go (LeafF x)   = x == s
+    go (NodeF a b) = a || b
 
-Consider this example:
+has2Leaves :: Eq a => a -> a -> Tree a -> Bool
+has2Leaves u v = (==) Edge . para go
+  where
+    go EmptyF = Miss
+    go (LeafF x) = 
+      if x == u then Tail else Miss
+    go (NodeF (_,a') (b,b')) =
+      case a' of
+        Miss -> b'
+        Tail -> if hasLeaf t v then Edge else Tail
+        Edge -> Edge
+
+mapt :: (a -> b) -> Tree a -> Tree b
+mapt f t = bind t (\x -> fix (LeafF f x))
+\end{minted}
+\caption{Functions on tree}
+\label{fig:has2Leaves}
+\end{figure}
+
+\subsection{Validity}
+As noticed Domínguez et al. \cite{paramorphismFusion} this is not always a good idea. Consider the previous example example with proper suffixes of a list.
+
+TODO
+\subsection{Implementation}
+TODO
 % + TODO relire papier PeytonJones (playing by the rules)

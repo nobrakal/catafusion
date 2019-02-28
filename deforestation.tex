@@ -82,6 +82,7 @@ type Cata f = forall b. (f b -> b) -> b
 This rule is genuinely replacing all occurrences of\\ \minline{cata f (buildR g)} by \minline{g f} \emph{when types matches}, that is when the argument of \minline{buildR} are allowing fusion.
 
 \subsection{Rewrite unneeded destructions}
+\label{sec:bind-def}
 All our work if focused on destructing structures. It is working great but can have unwanted implications. Consider the following code, implementing \minline{bind} for recursive trees:
 
 \begin{minted}{Haskell}
@@ -110,7 +111,8 @@ As a side note, this little problem induce a possible limitation but easily solv
 
 Note also that, as Voigtländer \cite{Voigtlnder2008TypesFP} noticed for \minline{map}, \minline{bind} for \minline{Tree} is expressed both with \minline{buildR} and \minline{cata}, thus it can be fused with \emph{both} producers and consumers of trees.
 
-\subsection{Example}
+\subsection{Examples}
+\subsubsection{fold/build}
 The \verb|foldr/build| rule is now just a particular case, using:
 \begin{minted}{haskell}
 map :: (a -> b) -> List a -> List b
@@ -121,7 +123,7 @@ map f xs = buildR $ \n ->
   in cata go xs
 \end{minted}
 
-The expression:
+\noindent The expression:
 \begin{minted}{Haskell}
 foldr c e (map f xs)
 \end{minted}
@@ -134,14 +136,25 @@ cata go' $ buildR $ \n ->
   in cata go xs
 \end{minted}
 
-With the \verb|cata/buildR| rule this will be rewritten to:
+\noindent With the \verb|cata/buildR| rule this will be rewritten to:
 \begin{minted}{haskell}
 let go x = case x of
   NilF -> go' NilF
   ConsF a b -> go' (ConsF (f a) b) in
 cata go xs
 \end{minted}
-That is exactly what we wanted !
+That is exactly what we wanted!
+
+\subsubsection{Hylomorphism}
+We can define \minline{ana} in term of \minline{buildR}:
+\begin{minted}{Haskell}
+ana :: Functor f => (b -> f b) -> b -> Fix f
+ana f b = buildR $ \comb -> 
+  let c = comb . fmap c . f in c b
+\end{minted}
+
+\noindent Then fusion of catamorphism composed with an anamorphism is automatic !
+
 \subsection{Compatibility with GHC's rules on lists}
 Our work is compatible with the one already made in the \verb|GHC.Base| and \verb|GHC.List| modules (described in the work of Peyton Jones et al. \cite{playing-by-the-rules-rewriting-as-a-practical-optimisation-technique-in-ghc} ) in the sense that one can write a function that destruct a list (using \verb|foldr| or any "good consumer" of lists) to a fixed point structure \emph{that can be fused with list producers and structure consumers}.
 
@@ -154,8 +167,7 @@ treeFromList xs = buildR $ \g ->
     (g EmptyF)
     xs
 \end{minted}
-
-\minline{treeFromlist} is made with both \minline{foldr} and \minline{buildR}, so it can fuse with both \minline{cata} or \minline{build}.
+\noindent \minline{treeFromlist} is made with both \minline{foldr} and \minline{buildR}, so it can fuse with both \minline{cata} or \minline{build}.
 
 The reverse is also possible, for example to convert a fixed-point list to a natural one:
 \begin{minted}{Haskell}
@@ -166,7 +178,6 @@ flistToList xs = GHC.Base.build $ \c n ->
     ConsF a b -> c a b
   in cata go xs
 \end{minted}
-
-\minline{treeFromlist} is made with both \minline{cata} and \minline{build}, so it can fuse with both \minline{buildR} or \minline{foldr}.
+\noindent \minline{treeFromlist} is made with both \minline{cata} and \minline{build}, so it can fuse with both \minline{buildR} or \minline{foldr}.
 
 It is simple to see that the system composed by \verb|cata/buildR| and \verb|fold/build| rules is \emph{confluent}, that is, if there is an expression where both rules can fire, the order is not important (because both rules are just like a $\beta$-reduction with some manipulation of arguments).

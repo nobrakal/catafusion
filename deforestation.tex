@@ -45,30 +45,31 @@ Again, adapting the work of Gill et al. \cite{Gill:1993:SCD:165180.165214}, te v
 \begin{theorem}
 Using, for a fixed parametric type $F$, instance of $Functor$ and a type $A$:
 \begin{itemize}
-	\item $g : \forall\ B.\ (F\ B \to B) \to B$
-	\item $go : F\ A \to A $
+	\item $g :: \forall\ B.\ (F\ B \to B) \to B$
+	\item $go :: F\ A \to A $
 \end{itemize}
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 \end{theorem}
 \begin{proof}
-The "free theorem" associated with g's type is that, for all types A and B, $f\ ::\ A \to B$, $p\ :\ F\ A \to A$ and $q\ :\ F\ B \to B$, the we have the following implication:
+The "free theorem" associated with $g$'s type is that, for all types $A$ and $B$, $f\ ::\ A \to B$, $p\ ::\ F\ A \to A$ and $q\ ::\ F\ B \to B$, the we have the following implication:
 \begin{align*}
-[\ \forall& x:A.\ f\ (p\ x)\ =\ q\ (fmap\ f\ x)\ ]\\
+[\ \forall& x::A.\ f\ (p\ x)\ =\ q\ (fmap\ f\ x)\ ]\\
 &\implies f\ (g\ p)\ =\ g\ q
 \end{align*}
 Now we can pose:
 \begin{itemize}
+	\item $A\ =\ Fix\ F$
 	\item $f\ =\ cata\ go$
 	\item $p\ =\ fix$
 \end{itemize}
 then we have
 
 \begin{align*}
-&[\ \forall x:F\ (Fix\ F).\\
+&[\ \forall x::F\ (Fix\ F).\\
 &cata\ go\ (fix\ x)\ =\ go\ (fmap\ (cata\ go)\ x)\ ]\\
 &\implies cata\ go\ (g\ fix)\ =\ g\ go
 \end{align*}
-Given the definition of $cata$, the premise always holds. So we have:
+Given the definition of $cata$, the premise trivially holds. So we have:
 $$cata\ go\ (g\ fix)\ =\ g\ go$$
 Given the definition of $buildR$, this is exactly what we required !
 \end{proof}

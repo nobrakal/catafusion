@@ -67,9 +67,10 @@ then we have
 (\forall & x:Fix\ F.\ cata\ go\ (fix\ x)\ =\ go\ (fmap\ (cata\ go))\ x)\\
 &\implies cata\ go\ (g\ fix)\ =\ g\ go
 \end{align*}
-Given the definition of $cata$, the premise always holds. So we have: $$cata\ go\ (g\ fix)\ =\ g\ go$$
-\end{proof}
+Given the definition of $cata$, the premise always holds. So we have:
+$$cata\ go\ (g\ fix)\ =\ g\ go$$
 Given the definition of $buildR$, this is exactly what we required !
+\end{proof}
 \subsection{Implementation}
 The implementation is pretty straightforward using GHC's rewrite rules described in \cite{pbr}. A rewrite rule consist in a name, maybe a phase to run and what to rewrite. TODO\\
 GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to control when the rules are firing and when functions are inlined.

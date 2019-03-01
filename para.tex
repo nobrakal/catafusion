@@ -88,7 +88,7 @@ has2Leaves u v = (==) Edge . para go
 mapt :: (a -> b) -> Tree a -> Tree b
 mapt f t = bind t (\x -> fix (LeafF f x))
 \end{minted}
-\caption{Functions on tree}
+\caption{Functions on trees}
 \label{fig:has2Leaves}
 \end{figure}
 

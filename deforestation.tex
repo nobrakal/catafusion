@@ -43,17 +43,33 @@ This is exactly what we want: using the right-side of the equation \emph{does no
 Again, adapting the work of Gill et al. \cite{Gill:1993:SCD:165180.165214}, te validity of the above rule is guaranteed by the type.
 
 \begin{theorem}
-Using, for a fixed parametric type $f$, and a type $a$:
+Using, for a fixed parametric type $F$, instance of $Functor$ and a type $A$:
 \begin{itemize}
-	\item $g : \forall\ b.\ (f\ b \to b) \to b$
-	\item $go : f\ a \to a $
+	\item $g : \forall\ B.\ (F\ B \to B) \to B$
+	\item $go : F\ A \to A $
 \end{itemize}
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 \end{theorem}
 \begin{proof}
-	TODO
-\end{proof}
+The "free theorem" associated with g's type is that, for all types A and B, $f\ ::\ A \to B$, $p\ :\ F\ A \to A$ and $q\ :\ F\ B \to B$, the we have the following implication:
+\begin{align*}
+(\forall& x:A.\ f\ (p\ x)\ =\ q\ (fmap\ f\ x))\\
+&\implies f\ (g\ p)\ =\ g\ q
+\end{align*}
+Now we can pose:
+\begin{itemize}
+	\item $f\ =\ cata\ go$
+	\item $p\ =\ fix$
+\end{itemize}
+then we have
 
+\begin{align*}
+(\forall & x:Fix\ F.\ cata\ go\ (fix\ x)\ =\ go\ (fmap\ (cata\ go))\ x)\\
+&\implies cata\ go\ (g\ fix)\ =\ g\ go
+\end{align*}
+Given the definition of $cata$, the premise always holds. So we have: $$cata\ go\ (g\ fix)\ =\ g\ go$$
+\end{proof}
+Given the definition of $buildR$, this is exactly what we required !
 \subsection{Implementation}
 The implementation is pretty straightforward using GHC's rewrite rules described in \cite{pbr}. A rewrite rule consist in a name, maybe a phase to run and what to rewrite. TODO\\
 GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to control when the rules are firing and when functions are inlined.

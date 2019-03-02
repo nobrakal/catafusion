@@ -38,12 +38,10 @@ ana f b = buildR
 Now, we have the lovely property that:
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 
-This is exactly what we want: using the right-side of the equation \emph{does not} build an intermediate structure.
-
-Again, adapting the work of Gill et al. \cite{Gill:1993:SCD:165180.165214}, te validity of the above rule is guaranteed by the type.
+This is exactly what we want: the right-side of the equation \emph{does not} build an intermediate structure. The validity of the above rule is guaranteed by the type (more precisely the rank-2 one).
 
 \begin{theorem}
-Using, for a fixed parametric type $F$, instance of $Functor$ and a type $A$:
+Using, for a fixed parametric type $F$, a valid instance of $Functor$, and a type $A$:
 \begin{itemize}
 	\item $g :: \forall\ B.\ (F\ B \to B) \to B$
 	\item $go :: F\ A \to A $
@@ -51,28 +49,31 @@ Using, for a fixed parametric type $F$, instance of $Functor$ and a type $A$:
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 \end{theorem}
 \begin{proof}
-The "free theorem" associated with $g$'s type is that, for all types $A$ and $B$, $f\ ::\ A \to B$, $p\ ::\ F\ A \to A$ and $q\ ::\ F\ B \to B$, the we have the following implication:
+This is a consequence of free theorems of Wadler \cite{Wadler:1989:TF:99370.99404}, as for the \verb|fold/build| rule \cite{Gill:1993:SCD:165180.165214}. The free theorem associated with $g$'s type is that, for all types $C$ and $D$, $f\ ::\ C \to D$, $p\ ::\ F\ C \to C$ and $q\ ::\ F\ D \to D$, the we have the following implication:
 \begin{align*}
-[\ \forall& x::A.\ f\ (p\ x)\ =\ q\ (fmap\ f\ x)\ ]\\
+[\ \forall& x::C.\ f\ (p\ x)\ =\ q\ (fmap\ f\ x)\ ]\\
 &\implies f\ (g\ p)\ =\ g\ q
 \end{align*}
 Now we can pose:
 \begin{itemize}
-	\item $A\ =\ Fix\ F$
+	\item $C\ =\ Fix\ F$, $D\ =\ A$
 	\item $f\ =\ cata\ go$
 	\item $p\ =\ fix$
+	\item $q\ =\ go$
 \end{itemize}
 then we have
-
 \begin{align*}
 &[\ \forall x::F\ (Fix\ F).\\
 &cata\ go\ (fix\ x)\ =\ go\ (fmap\ (cata\ go)\ x)\ ]\\
 &\implies cata\ go\ (g\ fix)\ =\ g\ go
 \end{align*}
-Given the definition of $cata$, the premise trivially holds. So we have:
+Given the definition of $cata$, the premise trivially holds. So we have the conclusion:
 $$cata\ go\ (g\ fix)\ =\ g\ go$$
-Given the definition of $buildR$, this is exactly what we required !
+Given the definition of $buildR$, this is exactly what we required.
 \end{proof}
+\subsubsection{A note on $\bot$ and \minline{seq}}
+The above statement is notoriously false without restrictions when in presence of $\bot$ (Wadler \cite{WADLER1990231}) or \minline{seq} (Voigtländer \cite{JV04}). The common solution is to impose \emph{strictness} on fused functions. This is done in the case of \minline{cata go} by requiring that \minline{go} is itself strict.
+
 \subsection{Implementation}
 The implementation is pretty straightforward using GHC's rewrite rules described in \cite{pbr}. A rewrite rule consist in a name, maybe a phase to run and what to rewrite. TODO\\
 GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to control when the rules are firing and when functions are inlined.

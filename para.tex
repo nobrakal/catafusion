@@ -19,7 +19,7 @@ para f = c
     c (Fix x) = f (fmap (\y -> (y,p y)) x)
 \end{minted}
 
-What is happening here? As with \minline{cata}, when we are trying to destruct a recursive structure, we are doing the recursive step plus giving a copy of the original data.
+\noindent What is happening here? As with \minline{cata}, when we are trying to destruct a recursive structure, we are doing the recursive step plus giving a copy of the original data.
 For example, we can encode a classic paramorphism, which is giving the list of proper suffixes of a list:
 \begin{minted}{Haskell}
 suff :: List a -> List (List a)
@@ -55,11 +55,11 @@ has2LeavesBind u v t f = Edge == para go t
         Tail -> if cata go' b then Edge else Tail
         Edge -> Edge
     go' EmptyF      = False
-    go' (LeafF x)   = x == v
+    go' (LeafF x)   = f x == v
     go' (NodeF a b) = a || b
 \end{minted}
 
-Can we generalize the work made in section \ref{sec:rectypes} to make this work?
+Can we generalize the work made in section \ref{sec:rectypes} to make this work? The answer is yes (section \ref{sec:para-impl}), but we first need to really se what we just made.
 
 \begin{figure}
 \begin{minted}{Haskell}
@@ -92,7 +92,7 @@ mapt f t = bind t (\x -> fix (LeafF f x))
 \label{fig:has2Leaves}
 \end{figure}
 
-\subsection{Validity}
+\subsection{Usability and validity}
 As noticed Domínguez et al. \cite{paramorphismFusion} fusing paramorphisms with other things is not always a good idea. Consider the previous example example with proper suffixes of a list, but again composed with a map:
 \begin{minted}{Haskell}
 suff (map f xs)
@@ -108,6 +108,51 @@ let go x =
 \end{minted}
 \noindent The \minline{map} happen for each suffixes! We clearly not want that.
 The problem here is that the combination function used \emph{both} the recursive call and the unconsumed part of the structure, which leads to a duplication of the work.
+
 \subsection{Implementation}
+\label{sec:para-impl}
+
+It is well known that every catamorphism is a paramorphism where the combination function just don't use the un-consumed structure. Indeed, you can define \minline{cata} as:
+\begin{minted}{Haskell}
+cata :: Functor f => (f a -> a) -> Fix f -> a
+cata go = para (go . fmap snd)
+\end{minted}
+
+We can then define a rule that will only target paramorphisms. However, paramorphism fusion is not as classy as the catamorphisms one: it can produce a lot of code and is not very compatible with GHC's rules for lists TODO (: problèmes avec les listes, + cata coerce). We consequently choose to target a specific function that represent either a catamorphism or a paramorphism, called \minline{destruct} (defined in figure \ref{fig:para}), which will \emph{not} be visible to the end user.
+
+\begin{figure}
+\begin{minted}{Haskell}
+type Combi f a =
+  Either (f a -> a) (f (Fix f, a) -> a)
+  
+type Para f = forall a. Combi f a -> a 
+
+destruct :: Functor f => Combi f a -> Fix f -> a
+destruct (Left c)  = cata c
+destruct (Right c) = para c
+{-# INLINE [1] destruct #-}
+
+buildR :: Functor f => Para f -> Fix f
+buildR g = g (Left fix)
+{-# INLINE [1] buildR #-}
+
+{-# RULES
+"cata/buildR" [~1] forall f (g :: Para f).
+  cata f (buildR g) = g (Left f)
+
+"para/buildR" [~1] forall f (g :: Para f).
+  para f (buildR g) = g (Right f)
+
+"destruct/buildR" [~1] forall f (g::Para f).
+  destruct f (buildR g) = g f
+
+"cata/id"
+  cata coerce = id
+#-}
+
+\end{minted}
+\caption{The rule system for paramorphism fusion}
+\label{fig:para}
+\end{figure}
 TODO
 % + TODO relire papier PeytonJones (playing by the rules)

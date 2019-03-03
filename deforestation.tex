@@ -71,8 +71,6 @@ Given the definition of $cata$, the premise trivially holds. So we have the conc
 $$cata\ go\ (g\ fix)\ =\ g\ go$$
 Given the definition of $buildR$, this is exactly what we required.
 \end{proof}
-\subsubsection{A note on $\bot$ and \minline{seq}}
-The above statement is notoriously false without restrictions when in presence of $\bot$ (Wadler \cite{WADLER1990231}) or \minline{seq} (Voigtländer \cite{JV04}). The common solution is to impose \emph{strictness} on fused functions. This is done in the case of \minline{cata go} by requiring that \minline{go} is itself strict.
 
 \subsection{Implementation}
 The implementation is pretty straightforward using GHC's rewrite rules described in \cite{pbr}. A rewrite rule consist in a name, maybe a phase to run and what to rewrite. TODO\\

@@ -116,9 +116,17 @@ It is well known that every catamorphism is a paramorphism where the combination
 \begin{minted}{Haskell}
 cata :: Functor f => (f a -> a) -> Fix f -> a
 cata go = para (go . fmap snd)
+{-# INLINE cata #-}
 \end{minted}
 
-\noindent We can then define a rule that will only target paramorphisms. However, paramorphism fusion is not as classy as the catamorphisms one: it can produce a lot of code and is not very compatible with GHC's rules for lists TODO (: problèmes avec les listes, + cata coerce). We consequently choose to target a specific function that represent either a catamorphism or a paramorphism, called \minline{destruct} (defined in figure \ref{fig:para}). This choice has some consequences, each described below:
+\noindent We can then define a rule that will only target paramorphisms. However, paramorphism fusion is not as classy as the catamorphisms one. This solution implies two main problems:
+\begin{itemize}
+\item We cannot target \minline{cata coerce}, since \minline{cata} is just \minline{para}. We cannot either target \minline{para (coerce . fmap snd)}, since \minline{fmap} is a class function.
+
+\item It is not compatible with GHC's \minline{build}. Indeed, \minline{build} represents a list waiting for its constructors TODO.
+\end{itemize}
+
+We consequently choose to target a specific function that represent either a catamorphism or a paramorphism, called \minline{destruct} (defined in figure \ref{fig:para}). This choice has some consequences, each described below:
 
 \begin{figure}
 \begin{minted}{Haskell}
@@ -156,6 +164,10 @@ buildR g = g (Left fix)
 \end{figure}
 
 \subsubsection{Many rules}
-We now have three rules, and we need all of them
+We now have three rules, and we need all of them. Indeed, rules \verb|"cata/buildR"| and \verb|"para/buildR"| are needed to correctly fuse the two recursion schemes. \verb|"destruct/buildR"| is a rule needed for fusion with lists:
+TODO
+
+\subsubsection{For the user, the example of bind on binary trees}
+This rule produce a lot of code.
 
 % + TODO relire papier PeytonJones (playing by the rules)

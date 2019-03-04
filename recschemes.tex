@@ -1,6 +1,6 @@
 %!TEX root = fusion.tex
 
-Recursion schemes are almost everywhere in functional programming. They generalize a very common pattern: construct a structure and destruct it recursively. They were popularized by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}. TODO INTRODUCE MORE
+Recursion schemes are almost everywhere in functional programming. They generalize very common patterns: constructing a structure and destructing it recursively. They were popularized by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}, which are giving them a categorical meaning. Our goal is not to study these strong mathematical foundations, but just define and use recursive schemes on a particular case: fixed-point types.
 
 \subsection{Fixed-point types}
 \label{subsec:defi}
@@ -8,7 +8,7 @@ First of all, we need to define what is a recursive structure. They can be defin
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}
-\minline{Fix} directly encode recursion in types: you are giving to a parametric type itself, again and again. Note that this data-type is defined with \minline{newtype} (and not simply by a type synonym) since it calls itself, but the great work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} will optimize it away at compile time.
+\minline{Fix} directly encode recursion in types: you are giving to a parametric type itself, again and again. Note that this data-type is defined with \minline{newtype} (and not simply with a type synonym) since it calls itself, but the great work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} will optimize it away at compile time.
 
 For example, you can define, as in figure \ref{fig:listtree}
 \minline{(List a)}, isomorphic to \minline{[a]} and \minline{(Tree a)}, isomorphic to the classic recursive structure for binary trees:
@@ -68,14 +68,14 @@ cata f (Fix x) = f (fmap (cata f) x)
 \end{minted}
 For example, \minline{(List a)} from the above example, one can write \minline{foldr}:
 \begin{minted}{Haskell}
-foldr :: (a -> b -> b) -> b -> Liat a -> b
+foldr :: (a -> b -> b) -> b -> List a -> b
 foldr c e = cata go
   where
     go NilF = e
     go (ConsF a b) = c a b
 \end{minted}
 
-How \minline{cata} is working? As any fold on any structure! Given a recursive structure, your will firstly destruct any substructure, and then apply a function to the result. The "firstly destruct any substructure" step is performed by using a \minline{Functor} instance: TODO
+How \minline{cata} is working? As any fold on any structure! Given a recursive structure, your will firstly destruct any substructure, and then apply a function to the result. The "firstly destruct any substructure" step is performed by using a \minline{Functor} instance: it is the only way to get "inside" the structure, since we don't know how it is made.
 
 Note that a better implementation is using the same definitions as E. Kmett in his \verb|recusrion-schemes| package \cite{ekmett:eschems}:
 
@@ -98,7 +98,7 @@ unfoldr f b =
     Nothing      -> n
 \end{minted}
 
-As you already guessed, we can provide anamorphisms for any recursive structure, using:
+\noindent As clever reader already guessed, we can provide anamorphisms for any recursive structure, using:
 \begin{minted}{Haskell}
 ana :: Functor f => (b -> f b) -> b -> Fix f
 ana f b = let c = Fix . fmap c . f in c b
@@ -118,9 +118,12 @@ Using (as in the \verb|recursion-schemes| package \cite{ekmett:eschems}):
 \begin{minted}{Haskell}
 hylo :: Functor f =>
   (f b -> b) -> (a -> f a) -> a -> b
-hylo f g = h where h = f . fmap h . g
+hylo f g = h 
+  where 
+    h = f . fmap h . g
 \end{minted}
+\noindent \minline{g} generates a structure, destructed right away using \minline{f}.
 
-TODO
+TODO example
 
 The goal of the next section is to make this fusion happen automatically.

@@ -49,7 +49,7 @@ Using, for a fixed parametric type $F$, a valid instance of $Functor$, and a typ
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 \end{theorem}
 \begin{proof}
-This is a consequence of free theorems of Wadler \cite{Wadler:1989:TF:99370.99404}, as for the \verb|fold/build| rule \cite{Gill:1993:SCD:165180.165214}. The free theorem associated with $g$'s type is that, for all types $C$ and $D$, $f\ ::\ C \to D$, $p\ ::\ F\ C \to C$ and $q\ ::\ F\ D \to D$, the we have the following implication:
+This is a consequence of free theorems of Wadler \cite{Wadler:1989:TF:99370.99404}, as for the \verb|foldr/build| rule \cite{Gill:1993:SCD:165180.165214}. The free theorem associated with $g$'s type is that, for all types $C$ and $D$, $f\ ::\ C \to D$, $p\ ::\ F\ C \to C$ and $q\ ::\ F\ D \to D$, the we have the following implication:
 \begin{align*}
 [\ \forall& x::C.\ f\ (p\ x)\ =\ q\ (fmap\ f\ x)\ ]\\
 &\implies f\ (g\ p)\ =\ g\ q
@@ -131,7 +131,7 @@ As a side note, this little problem induce a possible limitation but easily solv
 Note also that, as Voigtländer \cite{Voigtlnder2008TypesFP} noticed for \minline{map}, \minline{bind} for \minline{Tree} is expressed both with \minline{buildR} and \minline{cata}, thus it can be fused with \emph{both} producers and consumers of trees.
 
 \subsection{Examples}
-\subsubsection{fold/build}
+\subsubsection{foldr/build}
 The \verb|foldr/build| rule is now just a particular case, using:
 \begin{minted}{haskell}
 map :: (a -> b) -> List a -> List b
@@ -199,4 +199,4 @@ flistToList xs = GHC.Base.build $ \c n ->
 \end{minted}
 \noindent \minline{treeFromlist} is made with both \minline{cata} and \minline{build}, so it can fuse with both \minline{buildR} or \minline{foldr}.
 
-It is simple to see that the system composed by \verb|cata/buildR| and \verb|fold/build| rules is \emph{confluent}, that is, if there is an expression where both rules can fire, the order is not important (because both rules are just like a $\beta$-reduction with some manipulation of arguments).
+It is simple to see that the system composed by \verb|cata/buildR| and \verb|foldr/build| rules is \emph{confluent}, that is, if there is an expression where both rules can fire, the order is not important (because both rules are just like a $\beta$-reduction with some manipulation of arguments).

@@ -121,7 +121,7 @@ cata go = para (go . fmap snd)
 
 \noindent We can then define a rule that will only target paramorphisms. However, paramorphism fusion is not as classy as the catamorphisms one. This solution implies two main problems:
 \begin{itemize}
-\item We cannot target \minline{cata coerce}, since \minline{cata} is just \minline{para}. We cannot either target \minline{para (coerce . fmap snd)}, since \minline{fmap} is a class function.
+\item We cannot target \minline{cata coerce}, since \minline{cata} is just \minline{para}. We cannot either target\\ \minline{para (coerce . fmap snd)}, since \minline{fmap} is a class function.
 
 \item It is not compatible with GHC's \minline{build}. Indeed, \minline{build} represents a list waiting for its constructors TODO.
 \end{itemize}

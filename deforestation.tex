@@ -73,11 +73,11 @@ Given the definition of $buildR$, this is exactly what we required.
 \end{proof}
 
 \subsection{Implementation}
-The implementation is pretty straightforward using GHC's rewrite rules described in the work of Peyton Jones \cite{pbr}. A rewrite rule consist in a name and what to rewrite. This last part is an equality where when the left part is encountered in the code TODO.
+The implementation is pretty straightforward using GHC's rewrite rules described in the work of Peyton Jones \cite{pbr}. A rewrite rule consist in a name and body. The body is an equality were free variables are bounded by a universal quantifier. When the left part of the equality is encountered in the code (where types matches), it is replaced by the right part. More details can be found on GHC's manual \cite{ghc:manual}.
 
 A rewrite rule can also specify a phase constraint. GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to control when the rules are firing and when functions are inlined.
 
-We want to have our rules compatible with those for lists already in place (the \verb|foldr/build| of \cite{Gill:1993:SCD:165180.165214}). They all target the \minline{bind} (defined in\verb|GHC.Base|) functions that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2.
+We want to have our rules compatible with those for lists already in place (the \verb|foldr/build| of Gill et al. \cite{Gill:1993:SCD:165180.165214}). They all target the \minline{bind} (defined in\verb|GHC.Base|) functions that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2.
 
 Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add an
 \begin{minted}{Haskell}

@@ -118,7 +118,7 @@ cata :: Functor f => (f a -> a) -> Fix f -> a
 cata go = para (go . fmap snd)
 \end{minted}
 
-We can then define a rule that will only target paramorphisms. However, paramorphism fusion is not as classy as the catamorphisms one: it can produce a lot of code and is not very compatible with GHC's rules for lists TODO (: problèmes avec les listes, + cata coerce). We consequently choose to target a specific function that represent either a catamorphism or a paramorphism, called \minline{destruct} (defined in figure \ref{fig:para}), which will \emph{not} be visible to the end user.
+\noindent We can then define a rule that will only target paramorphisms. However, paramorphism fusion is not as classy as the catamorphisms one: it can produce a lot of code and is not very compatible with GHC's rules for lists TODO (: problèmes avec les listes, + cata coerce). We consequently choose to target a specific function that represent either a catamorphism or a paramorphism, called \minline{destruct} (defined in figure \ref{fig:para}). This choice has some consequences, each described below:
 
 \begin{figure}
 \begin{minted}{Haskell}
@@ -137,10 +137,10 @@ buildR g = g (Left fix)
 {-# INLINE [1] buildR #-}
 
 {-# RULES
-"cata/buildR" [~1] forall f (g :: Para f).
+"cata/buildR" [~1] forall f (g::Para f).
   cata f (buildR g) = g (Left f)
 
-"para/buildR" [~1] forall f (g :: Para f).
+"para/buildR" [~1] forall f (g::Para f).
   para f (buildR g) = g (Right f)
 
 "destruct/buildR" [~1] forall f (g::Para f).
@@ -154,5 +154,8 @@ buildR g = g (Left fix)
 \caption{The rule system for paramorphism fusion}
 \label{fig:para}
 \end{figure}
-TODO
+
+\subsubsection{Many rules}
+We now have three rules, and we need all of them
+
 % + TODO relire papier PeytonJones (playing by the rules)

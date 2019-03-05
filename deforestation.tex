@@ -13,7 +13,6 @@ foldr (c . f) e xs
 The above expression will go through the list only once.
 The rewriting operation we made in this example is again not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \minline{map}. This concept can be simply generalized to recursive structure, as we will show in the next section.
 
-
 \subsection{The idea}
 Deforestation can be implemented on recursive types imitating the work of Gill et al. \cite{Gill:1993:SCD:165180.165214}. Applying \minline{cata go} to a recursive structure has just the effect to replace every occurrence of \minline{Fix} by \minline{go} in the structure. Consequently, the idea is to abstract structure-producing functions with respect to \minline{Fix}. This is done using \minline{buildR}.
 

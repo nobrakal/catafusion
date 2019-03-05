@@ -164,13 +164,6 @@ buildR g = g (Left fix)
 \label{fig:para}
 \end{figure}
 
-\subsubsection{Many rules}
-We now have three rules, and we need all of them. Indeed, rules \verb|"cata/buildR"| and \verb|"para/buildR"| are needed to correctly fuse the two recursion schemes. \verb|"destruct/buildR"| is a rule needed when composing functions: with an expression like
-\begin{minted}{Haskell}
-map g (map f xs)
-\end{minted}
-\noindent The two \minline{map} will be inlined into it's \minline{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to use \minline{destruct} TODO explain more.
-
 \subsubsection{For the user, the example of bind on binary trees}
 Let us take back our \minline{has2leaves} example. If we want to have \minline{hasLeaf} fused with a possible previous operation on the tree (like a bind), we need to have not only \minline{bind} on a re-writeable form, but also need that the transformation of the combination function's arguments to be in a re-writeable form. TODO
 \begin{figure}
@@ -215,6 +208,13 @@ bindR f t = buildR $ \u -> destruct (
 \caption{\minline{bind} in term of \minline{bindR} and \minline{destruct}}
 \label{fig:bindbuild}
 \end{figure}
+
+\subsubsection{Many rules}
+We now have three rules, and we need all of them. Indeed, \verb|"cata/buildR"| and \verb|"para/buildR"| are needed to correctly fuse the two recursion schemes. \verb|"destruct/buildR"| is a rule needed when composing functions: with an expression like
+\begin{minted}{Haskell}
+bind (bind t f) g
+\end{minted}
+\noindent the two \minline{bind} will be inlined into their \minline{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to do a case analysis on the destructive function. A possibility is to perform directly the case analysis, but this will duplicate the occurrences of the second \minline{bind} into the body of the first, and GHC is smart enough to create a variable to reduce code duplication, no knowing that this duplication will be optimized after. So we can use \minline{destruct}, and performing the case analysis in its argument. Hence, without a too early inlining of it, the second \minline{bind} appears only once, and we can fuse it using \verb|"destruct/buildR"|.
 
 \subsubsection{Compatibility with GHC's rules on lists}
 \label{sec:parabuild}

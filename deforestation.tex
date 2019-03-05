@@ -85,7 +85,7 @@ Fortunately, this is not very hard work. First of all, imitating again the work 
 \end{minted}
 pragma, to ensure that \minline{buildR} is not inlined too quickly. Note that we force the inlining by using \verb|INLINE| and not only \verb|NOINLINE|, but this is a good idea since high-order functions like \minline{buildR} generally benefit from inlining.
 
-Now, our rule will also target \minline{cata}, do we also add an \verb|INLINE| pragma to it.
+Now, our rule will also target \minline{cata}, we consequently also need to add an \verb|INLINE| pragma to it.
 \begin{minted}{Haskell}
 {-# INLINE [0] cata #-}
 \end{minted}
@@ -126,7 +126,7 @@ type Cata f = forall b. (f b -> b) -> b
 #-}
 \end{minted}
 
-As a side note, this little problem induce a possible limitation but easily solved: the need for optimizations. Rewrite rules mechanism are enabled either when required by the user or where optimization is enabled; fortunately, \verb|cabal| enable it by default. Either, a problem with a direct use of \minline{build} in \minline{bind} body will introduce an unwanted and unneeded traversal of the part of the graph as showed. This is solved (and this is the solution taken by the \verb|GHC.Base| module), it to define "normally" \minline{bind}, and add a rewrite rule to rewrite it in its "build" form.
+\noindent As a side note, this little problem induce a possible limitation but easily solved: the need for optimizations. Rewrite rules mechanism are enabled either when required by the user or where optimization is enabled; fortunately, \verb|cabal| enable it by default. Either, a problem with a direct use of \minline{build} in \minline{bind} body will introduce an unwanted and unneeded traversal of the part of the graph as showed. This is solved (and this is the solution taken by the \verb|GHC.Base| module), it to define "normally" \minline{bind}, and add a rewrite rule to rewrite it in its "build" form.
 
 Note also that, as Voigtländer \cite{Voigtlnder2008TypesFP} noticed for \minline{map}, \minline{bind} for \minline{Tree} is expressed both with \minline{buildR} and \minline{cata}, thus it can be fused with \emph{both} producers and consumers of trees.
 
@@ -175,7 +175,7 @@ ana f b = buildR $ \comb ->
 \noindent Then fusion of catamorphism composed with an anamorphism is automatic !
 
 \subsection{Compatibility with GHC's rules on lists}
-Our work is compatible with the one already made in the \verb|GHC.Base| and \verb|GHC.List| modules (described in the work of Peyton Jones et al. \cite{playing-by-the-rules-rewriting-as-a-practical-optimisation-technique-in-ghc} ) in the sense that one can write a function that destruct a list (using \verb|foldr| or any "good consumer" of lists) to a fixed point structure \emph{that can be fused with list producers and structure consumers}.
+Our work is compatible with the one already made in the \verb|GHC.Base| and \verb|GHC.List| modules (described in the work of Peyton Jones et al. \cite{pbr} ) in the sense that one can write a function that destruct a list (using \verb|foldr| or any "good consumer" of lists) to a fixed point structure \emph{that can be fused with list producers and structure consumers}.
 
 Let us take an example with \minline{Tree}, by defining\\ \minline{treeFromList} that convert a list to a degenerate tree (where each node has a leaf):
 \begin{minted}{Haskell}

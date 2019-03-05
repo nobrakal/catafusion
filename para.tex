@@ -94,7 +94,7 @@ mapt f t = bind t (\x -> fix (LeafF f x))
 \end{figure}
 
 \subsection{Usability and validity}
-As noticed Domínguez et al. \cite{paramorphismFusion} fusing paramorphisms with other things is not always a good idea. Consider the previous example example with proper suffixes of a list, but again composed with a map:
+As noticed Domínguez et al. \cite{paramorphismFusion} fusing paramorphisms with other things is not always a good idea. Consider the previous example with proper suffixes of a list, but again composed with a map:
 \begin{minted}{Haskell}
 suff (map f xs)
 \end{minted}
@@ -172,7 +172,7 @@ map g (map f xs)
 \noindent The two \minline{map} will be inlined into it's \minline{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to use \minline{destruct} TODO explain more.
 
 \subsubsection{For the user, the example of bind on binary trees}
-Let us take back our \minline{has2leaves} example. If we want to have \minline{hasLeaf} fused with a possible previous operation on the tree (like a bind), we need to have not only \minline{bind} on a re-writable form, but also need that the transformation of the combination function's arguments to be in a re-writable form. TODO
+Let us take back our \minline{has2leaves} example. If we want to have \minline{hasLeaf} fused with a possible previous operation on the tree (like a bind), we need to have not only \minline{bind} on a re-writeable form, but also need that the transformation of the combination function's arguments to be in a re-writeable form. TODO
 \begin{figure}
 \begin{minted}{Haskell}
 bind :: TODO
@@ -225,5 +225,5 @@ para f n = snd .
   foldr (\x (xs,b) -> (x:xs, f x xs b)) ([],n)
 \end{minted}
 \noindent We just give a copy of the structure at each steps. Sadly, this definition is not what we need.TODO
-We must, for now, resign ourselves to to not fuse a list construction with a paramorphism.
+We must, for now, resign ourselves to not fuse a list construction with a paramorphism.
 % + TODO relire papier PeytonJones (playing by the rules)

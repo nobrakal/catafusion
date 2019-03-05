@@ -218,12 +218,16 @@ bind (bind t f) g
 
 \subsubsection{Compatibility with GHC's rules on lists}
 \label{sec:parabuild}
-To be able to fuse eligible paramorphisms with functions that are working on lists, one need to have access to paramorphisms \emph{for lists}. Moreover, these paramorphisms must be expressed with \minline{foldr}, since we want to preserve list-fusion with the \verb|"foldr/build"| rule. Hence the following definition:
+To be able to fuse eligible paramorphisms with functions that are working on lists, one need to have access to paramorphisms \emph{for lists}. Moreover, these paramorphisms must be expressed with \minline{foldr}, since we want to preserve list-fusion with the \verb|"foldr/build"| rule. The solution is to give a copy of the structure at each steps. Sadly, this definition is not what we need. Indeed, imagine that you want, for example, produce a fixed-point list from a classical list, but allowing fusion with \emph{both} list producers and \minline{List} consumers, you will have to do something like:
 \begin{minted}{Haskell}
-para :: (a -> [a] -> b -> b) -> b -> [a] -> b
-para f n = snd . 
-  foldr (\x (xs,b) -> (x:xs, f x xs b)) ([],n)
+fromClassicalList :: [a] -> List a
+fromClassicalList xs = 
+  buildR $ \(Right u) -> snd $
+    foldr 
+      (\x (xs,y) -> 
+        (cons x xs, u $ ConsF x $ (xs,y)))
+      (nil,(u NilF))
+    xs
 \end{minted}
-\noindent We just give a copy of the structure at each steps. Sadly, this definition is not what we need.TODO
-We must, for now, resign ourselves to not fuse a list construction with a paramorphism.
+Excuse the non-exhaustive pattern matching, this is the only interesting case. So the obvious problem is that, even if \minline{u} is guaranteed to not use both the not-consumed structure and the recursive call, they need to be both available. The medication is here worth than the disease, and if we perform fusion with lists, we must do it with, for now, only catamorphisms.
 % + TODO relire papier PeytonJones (playing by the rules)

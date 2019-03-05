@@ -27,7 +27,7 @@ buildR g = g Fix
 \begin{minted}{Haskell}
 ana :: Functor f => (b -> f b) -> b -> Fix f
 ana f b = buildR
-  (\comb -> let c =  comb . fmap c . f in c b)
+  (\u -> let c =  u . fmap c . f in c b)
 \end{minted}
 
 \subsubsection{Validity}
@@ -72,13 +72,11 @@ Given the definition of $buildR$, this is exactly what we required.
 TODO
 
 \subsection{Implementation}
-The implementation is pretty straightforward using GHC's rewrite rules described in the work of Peyton Jones \cite{pbr}. A rewrite rule consist in a name and body. The body is an equality were free variables are bounded by a universal quantifier. When the left part of the equality is encountered in the code (where types matches), it is replaced by the right part. More details can be found on GHC's manual \cite{ghc:manual}.
+The implementation is pretty straightforward using GHC's rewrite rules described in the great work of Peyton Jones et al. \cite{pbr}. A rewrite rule consist in a name and body. The body is an equality were free variables are bounded by a universal quantifier. When the left part of the equality is encountered in the code (and types matche), it is replaced by the right part. More details can be found on GHC's manual \cite{ghc:manual}.
 
-A rewrite rule can also specify a phase constraint. GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to control when the rules are firing and when functions are inlined.
+A rewrite rule can also specify a phase constraint. GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to ensure when the rules are firing and when functions are inlined.
 
-We want to have our rules compatible with those for lists already in place (the \verb|foldr/build| of Gill et al. \cite{Gill:1993:SCD:165180.165214}). They all target the \minline{bind} (defined in\verb|GHC.Base|) functions that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2.
-
-Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add an
+We want to have our rules compatible with those for lists already in place (the \verb|foldr/build| of Gill et al. \cite{Gill:1993:SCD:165180.165214}). They all target the \minline{bind} (defined in\verb|GHC.Base|) functions that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2. Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add an
 \begin{minted}{Haskell}
 {-# INLINE [1] buildR #-}
 \end{minted}
@@ -89,15 +87,16 @@ Now, our rule will also target \minline{cata}, we consequently also need to add 
 {-# INLINE [0] cata #-}
 \end{minted}
 
-Now we can safely add the rule:
+\noindent Now we can safely add the rule:
 \begin{minted}{Haskell}
 type Cata f = forall b. (f b -> b) -> b
 {-# RULES
-"cata/buildR" forall (f::t b -> b) (g::Cata t).
-  cata f (buildR g) = g f
+"cata/buildR" [~1] 
+  forall (f::t b -> b) (g::Cata t).
+    cata f (buildR g) = g f
  #-}
 \end{minted}
-This rule is genuinely replacing all occurrences of\\ \minline{cata f (buildR g)} by \minline{g f} \emph{when types matches}, that is when the argument of \minline{buildR} are allowing fusion.
+This rule is genuinely replacing all occurrences of\\ \minline{cata f (buildR g)} by \minline{g f} \emph{when types matches}, that is when the argument of \minline{buildR} are allowing fusion. The \minline{[~1]} parameter will disable the rule in the final phase, so we can rewrite un-merged functions back.
 
 \subsection{Rewrite unneeded destructions}
 \label{sec:bind-def}
@@ -115,17 +114,16 @@ bind t f = buildR
     t)
 \end{minted}
 
-So given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by an other function than \minline{Fix}, for example, something that calculate the sum of the leaves of the tree, thus we effectively need to "destruct" the graph constructed by \minline{f}. The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned (section 6.5 of the previously mentioned article) and we can target the function that replace \minline{Fix}: \minline{coerce}.
+\noindent Given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by an other function than \minline{Fix}, for example, something that calculate the sum of the leaves of the tree, thus we effectively need to "destruct" the graph constructed by \minline{f}. The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned (section 6.5 of the previously mentioned article) and we can target the function that replace \minline{Fix}: \minline{coerce}.
 
 \begin{minted}{Haskell}
-type Cata f = forall b. (f b -> b) -> b
 {-# RULES
 "cata/id" forall (g :: Fix f)
   cata coerce g = g
 #-}
 \end{minted}
 
-\noindent As a side note, this little problem induce a possible limitation but easily solved: the need for optimizations. Rewrite rules mechanism are enabled either when required by the user or where optimization is enabled; fortunately, \verb|cabal| enable it by default. Either, a problem with a direct use of \minline{build} in \minline{bind} body will introduce an unwanted and unneeded traversal of the part of the graph as showed. This is solved (and this is the solution taken by the \verb|GHC.Base| module), it to define "normally" \minline{bind}, and add a rewrite rule to rewrite it in its "build" form.
+\noindent As a side note, this little problem induce a possible limitation but easily solved: the real need for optimizations. Rewrite rules mechanism are enabled either when required by the user or where optimization is enabled; fortunately, \verb|cabal| enable it by default. If rewrite are not enabled, the direct use of \minline{build} in \minline{bind} body will introduce an unwanted and unneeded traversal of the part of the graph as showed. This is solved (and this is the solution taken by the \verb|GHC.Base| module), it to define "normally" \minline{bind}, and add a rewrite rule to rewrite it in its \minline{build} form.
 
 Note also that, as Voigtländer \cite{Voigtlnder2008TypesFP} noticed for \minline{map}, \minline{bind} for \minline{Tree} is expressed both with \minline{buildR} and \minline{cata}, thus it can be fused with \emph{both} producers and consumers of trees.
 
@@ -134,10 +132,10 @@ Note also that, as Voigtländer \cite{Voigtlnder2008TypesFP} noticed for \minlin
 The \verb|foldr/build| rule is now just a particular case, using:
 \begin{minted}{haskell}
 map :: (a -> b) -> List a -> List b
-map f xs = buildR $ \n ->
+map f xs = buildR $ \u ->
   let go x = case x of
-    NilF -> n NilF
-    ConsF a b -> n (ConsF (f a) b)
+    NilF -> u NilF
+    ConsF a b -> u (ConsF (f a) b)
   in cata go xs
 \end{minted}
 
@@ -147,10 +145,10 @@ foldr c e (map f xs)
 \end{minted}
 (with \minline{foldr} defined as in section \ref{subsec:defi}) will first be rewritten (only by inlining) as:
 \begin{minted}{haskell}
-cata go' $ buildR $ \n ->
+cata go' $ buildR $ \u ->
   let go x = case x of
-    NilF -> n NilF
-    ConsF a b -> n (ConsF (f a) b)
+    NilF -> u NilF
+    ConsF a b -> u (ConsF (f a) b)
   in cata go xs
 \end{minted}
 
@@ -163,12 +161,12 @@ cata go xs
 \end{minted}
 That is exactly what we wanted!
 
-\subsubsection{Hylomorphism}
+\subsubsection{Automatic hylomorphisms}
 We can define \minline{ana} in term of \minline{buildR}:
 \begin{minted}{Haskell}
 ana :: Functor f => (b -> f b) -> b -> Fix f
-ana f b = buildR $ \comb ->
-  let c = comb . fmap c . f in c b
+ana f b = buildR $ \u ->
+  let c = u . fmap c . f in c b
 \end{minted}
 
 \noindent Then fusion of catamorphism composed with an anamorphism is automatic!
@@ -179,9 +177,9 @@ Our work is compatible with the one already made in the \verb|GHC.Base| and \ver
 Let us take an example with \minline{Tree}, by defining\\ \minline{treeFromList} that convert a list to a degenerate tree (where each node has a leaf):
 \begin{minted}{Haskell}
 treeFromList :: [Tree a] -> Tree a
-treeFromList xs = buildR $ \g ->
+treeFromList xs = buildR $ \u ->
   foldr
-    (\x -> g . NodeF (cata g x))
+    (\x -> u . NodeF (cata u x))
     (g EmptyF)
     xs
 \end{minted}

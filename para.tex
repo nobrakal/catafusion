@@ -175,7 +175,7 @@ map g (map f xs)
 Let us take back our \minline{has2leaves} example. If we want to have \minline{hasLeaf} fused with a possible previous operation on the tree (like a bind), we need to have not only \minline{bind} on a re-writeable form, but also need that the transformation of the combination function's arguments to be in a re-writeable form. TODO
 \begin{figure}
 \begin{minted}{Haskell}
-bind :: TODO
+bind :: Tree a -> (a -> Tree b) -> Tree b
 bind f t = buildR $ \u -> destruct (
   case u of
     Left u -> Left $ \x -> 
@@ -191,7 +191,7 @@ bind f t = buildR $ \u -> destruct (
         u $ NodeF (bindR f a,a') (bindR f b, b'))
   t
 
-bindR :: TODO
+bindR :: Tree a -> (a -> Tree b) -> Tree b
 bindR f t = buildR $ \u -> destruct (
   case u of
     Left u -> Left $ \x -> 
@@ -212,7 +212,7 @@ bindR f t = buildR $ \u -> destruct (
     go (NodeF a b) = fix (NodeF a b)
 
 \end{minted}
-\caption{bind in term of buildR and destruct}
+\caption{\minline{bind} in term of \minline{bindR} and \minline{destruct}}
 \label{fig:bindbuild}
 \end{figure}
 

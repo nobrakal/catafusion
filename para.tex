@@ -1,5 +1,6 @@
 %!TEX root = fusion.tex
 \subsection{Paramorphisms}
+\label{sec:para-list}
 
 As far as we did, we worked only on catamorphisms. These are not really satisfying to define recursive functions that also use the unconsumed part of the structure. A \emph{paramorphism} (introduced by Meertens \cite{Meertens1992}) are a direct response, as it allows the combination function to have a look on the unconsumed part of the structure (imitating the full power of recursion).
 
@@ -82,7 +83,7 @@ has2Leaves u v = (==) Edge . para go
     go (NodeF (_,a') (b,b')) =
       case a' of
         Miss -> b'
-        Tail -> if hasLeaf t v then Edge else Tail
+        Tail -> if hasLeaf v b then Edge else Tail
         Edge -> Edge
 
 mapt :: (a -> b) -> Tree a -> Tree b
@@ -123,7 +124,7 @@ cata go = para (go . fmap snd)
 \begin{itemize}
 \item We cannot target \minline{cata coerce}, since \minline{cata} is just \minline{para}. We cannot either target\\ \minline{para (coerce . fmap snd)}, since \minline{fmap} is a class function.
 
-\item It is not compatible with GHC's \minline{build}. Indeed, \minline{build} represents a list waiting for its constructors TODO.
+\item It is not compatible with GHC's \minline{build}. This is discussed in section \ref{sec:parabuild}.
 \end{itemize}
 
 We consequently choose to target a specific function that represent either a catamorphism or a paramorphism, called \minline{destruct} (defined in figure \ref{fig:para}). This choice has some consequences, each described below:
@@ -164,10 +165,65 @@ buildR g = g (Left fix)
 \end{figure}
 
 \subsubsection{Many rules}
-We now have three rules, and we need all of them. Indeed, rules \verb|"cata/buildR"| and \verb|"para/buildR"| are needed to correctly fuse the two recursion schemes. \verb|"destruct/buildR"| is a rule needed for fusion with lists:
-TODO
+We now have three rules, and we need all of them. Indeed, rules \verb|"cata/buildR"| and \verb|"para/buildR"| are needed to correctly fuse the two recursion schemes. \verb|"destruct/buildR"| is a rule needed when composing functions: with an expression like
+\begin{minted}{Haskell}
+map g (map f xs)
+\end{minted}
+\noindent The two \minline{map} will be inlined into it's \minline{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to use \minline{destroy} TODO explain more.
 
 \subsubsection{For the user, the example of bind on binary trees}
-This rule produce a lot of code.
+Let us take back our \minline{has2leaves} example. If we want to have \minline{hasLeaf} fused with a possible previous operation on the tree (like a bind), we need to have not only \minline{bind} on a re-writable form, but also need that the transformation of the combination function's arguments to be in a re-writable form. TODO
+\begin{figure}
+\begin{minted}{Haskell}
+bind :: TODO
+bind f t = buildR $ \u -> destruct (
+  case u of
+    Left u -> Left $ \x -> 
+      case x of
+        EmptyF -> u EmptyF
+        LeafF x -> cata u (f x)
+        NodeF a b -> u $ NodeF a b)
+    Right u -> Right $ \x ->
+      case x of
+        EmptyF -> u EmptyF
+        LeafF x -> para u (f x)
+        NodeF (a,a') (b,b') -> 
+        u $ NodeF (bindR f a,a') (bindR f b, b'))
+  t
 
+bindR :: TODO
+bindR f t = buildR $ \u -> destruct (
+  case u of
+    Left u -> Left $ \x -> 
+      case x of
+        EmptyF -> u EmptyF
+        LeafF x -> cata u (f x)
+        NodeF a b -> u $ NodeF a b)
+    Right u -> Right $ \x ->
+      case x of
+        EmptyF -> u EmptyF
+        LeafF x -> para u (f x)
+        NodeF (a,a') (b,b') -> 
+        u $ NodeF (cata go a,a') (cata go b, b'))
+  t
+  where
+    go EmptyF = fix EmptyF
+    go (LeafF a) = f a
+    go (NodeF a b) = fix (NodeF a b)
+
+\end{minted}
+\caption{bind in term of buildR and destruct}
+\label{fig:bindbuild}
+\end{figure}
+
+\subsubsection{Compatibility with GHC's rules on lists}
+\label{sec:parabuild}
+To be able to fuse eligible paramorphisms with functions that are working on lists, one need to have access to paramorphisms \emph{for lists}. Moreover, these paramorphisms must be expressed with \minline{foldr}, since we want to preserve list-fusion with the \verb|"foldr/build"| rule. Hence the following definition:
+\begin{minted}{Haskell}
+para :: (a -> [a] -> b -> b) -> b -> [a] -> b
+para f n = snd . 
+  foldr (\x (xs,b) -> (x:xs, f x xs b)) ([],n)
+\end{minted}
+\noindent We just give a copy of the structure at each steps. Sadly, this definition is not what we need.TODO
+We must, for now, resign ourselves to to not fuse a list construction with a paramorphism.
 % + TODO relire papier PeytonJones (playing by the rules)

@@ -169,7 +169,7 @@ We now have three rules, and we need all of them. Indeed, rules \verb|"cata/buil
 \begin{minted}{Haskell}
 map g (map f xs)
 \end{minted}
-\noindent The two \minline{map} will be inlined into it's \minline{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to use \minline{destroy} TODO explain more.
+\noindent The two \minline{map} will be inlined into it's \minline{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to use \minline{destruct} TODO explain more.
 
 \subsubsection{For the user, the example of bind on binary trees}
 Let us take back our \minline{has2leaves} example. If we want to have \minline{hasLeaf} fused with a possible previous operation on the tree (like a bind), we need to have not only \minline{bind} on a re-writable form, but also need that the transformation of the combination function's arguments to be in a re-writable form. TODO

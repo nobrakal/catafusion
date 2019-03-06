@@ -127,7 +127,7 @@ cata go = para (go . fmap snd)
 \item It is not compatible with GHC's \minline{build}. This is discussed in section \ref{sec:parabuild}.
 \end{itemize}
 
-We consequently choose to target a specific function that represent either a catamorphism or a paramorphism, called \minline{destruct} (defined in figure \ref{fig:para}). This choice has some consequences, each described below:
+We consequently choose to target a specific function that represent either a catamorphism or a paramorphism, called \minline{destruct}, defined with according rules in figure \ref{fig:para}. This choice has some consequences, each described below:
 
 \begin{figure}
 \begin{minted}{Haskell}
@@ -158,14 +158,22 @@ buildR g = g (Left fix)
 "cata/id"
   cata coerce = id
 #-}
-
 \end{minted}
 \caption{The rule system for paramorphism fusion}
 \label{fig:para}
 \end{figure}
 
 \subsubsection{For the user, the example of bind on binary trees}
-Let us take back our \minline{has2leaves} example. If we want to have \minline{hasLeaf} fused with a possible previous operation on the tree (like a bind), we need to have not only \minline{bind} on a re-writeable form, but also need that the transformation of the combination function's arguments to be in a re-writeable form. TODO
+Let us take back our \minline{has2leaves}  but composed with a possible previous operation on the tree \emph{that preserved} the structure. It is not difficult that such an operation can be written using \minline{bind}, so let us concentrate ourselves on an expression like:
+
+\begin{minted}{Haskell}
+has2Leaves u v (bind t f)
+\end{minted}
+
+\noindent For fusion to happen, we need to have \minline{bind} on a re-writeable form for a paramorphism, that is to write it in term of \minline{buildR}. The interesting part comes with the fact that \minline{bind} appears also on its \minline{buildR} form, as you can see in figure \ref{fig:bindbuild}. It is necessary since we need to perform the \minline{bind} operation also on the unconsumed part of the tree if we are fusing with a paramorphism. Since with \minline{has2Leaves} we also destruct the the unconsumed part of the tree using \minline{hasLeaf} (a catamorphism), one can hope that fusion happen here too, so we need this bind to be also in a rewritable form, so we introduce \minline{bindR} which is just \minline{bind} in its \minline{buildR} form.
+
+TODO infinite buildR
+
 \begin{figure}
 \begin{minted}{Haskell}
 bind :: Tree a -> (a -> Tree b) -> Tree b
@@ -180,10 +188,11 @@ bind f t = buildR $ \u -> destruct (
       case x of
         EmptyF -> u EmptyF
         LeafF x -> para u (f x)
-        NodeF (a,a') (b,b') -> 
-        u $ NodeF (bindR f a,a') (bindR f b, b'))
+        NodeF (a,a') (b,b') -> u $
+          NodeF (bindR f a,a') (bindR f b, b'))
   t
 
+-- This is just bind
 bindR :: Tree a -> (a -> Tree b) -> Tree b
 bindR f t = buildR $ \u -> destruct (
   case u of
@@ -196,8 +205,8 @@ bindR f t = buildR $ \u -> destruct (
       case x of
         EmptyF -> u EmptyF
         LeafF x -> para u (f x)
-        NodeF (a,a') (b,b') -> 
-        u $ NodeF (cata go a,a') (cata go b, b'))
+        NodeF (a,a') (b,b') -> u $
+          NodeF (cata go a,a') (cata go b, b'))
   t
   where
     go EmptyF = fix EmptyF

@@ -91,7 +91,7 @@ Now, our rule will also target \minline{cata}, we consequently also need to add 
 \begin{minted}{Haskell}
 type Cata f = forall b. (f b -> b) -> b
 {-# RULES
-"cata/buildR" [~1] 
+"cata/buildR" [~1]
   forall (f::t b -> b) (g::Cata t).
     cata f (buildR g) = g f
  #-}

@@ -91,7 +91,7 @@ foldr ((+) . (*) 2) 0 xs
 \end{minted}
 
 \noindent While the first one is more comprehensible, it builds an intermediate list that is not needed. The second version optimize this and will only go through the original list once.
-This optimization, called \emph{deforestation} (Wadler \cite{WADLER1990231}) can be made at compile-time and thus allows the user to write a readable code while the compiler optimize it when it can; this is known for a long time, explained by Gill et al. \cite{Gill:1993:SCD:165180.165214} and implemented by Peyton Jones et al. \cite{playing-by-the-rules-rewriting-as-a-practical-optimisation-technique-in-ghc} for GHC.
+This optimization, called \emph{deforestation} (Wadler \cite{WADLER1990231}) can be made at compile-time and thus allows the user to write a readable code while the compiler optimize it when it can; this is known for a long time, explained by Gill et al. \cite{Gill:1993:SCD:165180.165214} and implemented by Peyton Jones et al. \cite{pbr} for GHC.
 
 The purpose of this paper is to generalize this work for fixed-point recursive types with a minimalistic library that allows programmers to use deforestation simply. We first explain the generalization of "fold" functions in section \ref{sec:recschemes}, then explore the classical deforestation on recursive types in section \ref{sec:rectypes} and finally explore a generalization for "generalized recursive functions" while keeping compatibility with the previous work in section \ref{sec:para}.
 

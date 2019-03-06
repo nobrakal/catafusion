@@ -66,7 +66,7 @@ The idea of \minline{foldr} is that, if you provide a definition for the empty l
 cata :: Functor f => (f a -> a) -> Fix f -> a
 cata f (Fix x) = f (fmap (cata f) x)
 \end{minted}
-\noindent How \minline{cata} is working? As any fold on any structure! Given a recursive structure, your will firstly destruct any substructure, and then apply a function to the result. The "firstly destruct any substructure" step is performed by using a \minline{Functor} instance: it is the only way to get "inside" the structure, since we don't know how it is made. The combination function can also feels a bit strange but its type says it all: if you have a recursive structure where the substructures were replaced by a result, then you must be able to combine these to produce yourself a result.
+\noindent How \minline{cata} is working? As any fold on any structure! Given a recursive structure, your will firstly destruct any substructure, and then apply a function to the result. The "firstly destruct any substructure" step is performed by using a \minline{Functor} instance: it is the only way to get "inside" the structure, since we don't know how it is made. The combination function can also feel a bit strange but its type says it all: if you have a recursive structure where the substructures were replaced by a result, then you must be able to combine these to produce yourself a result.
 
 For example, with \minline{(List a)} from the above example, one can write \minline{foldr}:
 \begin{minted}{Haskell}
@@ -88,7 +88,7 @@ cata f = c where c (Fix x) = f (fmap c x)
 where the recursive step was specialized to the \minline{f} argument.
 
 \subsection{Anamorphisms}
-An \emph{anamorphism} generalize the notion of unfolding a recursive structure, that is, producing a structure from a seed value.
+An \emph{anamorphism} generalizes the notion of unfolding a recursive structure, that is, producing a structure from a seed value.
 For example, anamorphisms on lists can be expressed with the so-called \minline{unfoldr}.
 \begin{minted}{Haskell}
 unfoldr :: (b -> Maybe (a, b)) -> b -> [a]
@@ -121,4 +121,4 @@ hylo :: Functor f =>
 hylo f g = h where h = f . fmap h . g
 \end{minted}
 \noindent \minline{g} generates a structure, destructed right away using \minline{f}.
-The goal of the next section is to make this fusion happen automatically.
+The goal of the next section is to make this fusion automatically.

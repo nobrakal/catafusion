@@ -107,13 +107,15 @@ let go x =
       cons (map f (cons x xs)) b
   in para go xs
 \end{minted}
-\noindent The \minline{map} happen for each suffixes! We clearly not want that.
+\noindent The \minline{map} happen for each suffix! We clearly not want that.
 The problem here is that the combination function used \emph{both} the recursive call and the unconsumed part of the structure, which leads to a duplication of the work.
+
+Sadly, this restriction is not easy to encode in type for \minline{Fix}: a valid function may inspect the recursive call on a part of the structure, then decide if it will use another recursive call or another unconsumed part of the structure; dependent types might be a solution, but this is not in our scope. The implementation below does not take into account this problem and allow fusion of any paramorphism.
 
 \subsection{Implementation}
 \label{sec:para-impl}
 
-It is well known that every catamorphism is a paramorphism where the combination function just don't use the un-consumed structure. Indeed, you can define \minline{cata} as:
+It is well-known that every catamorphism is a paramorphism where the combination function just don't use the unconsumed structure. Indeed, you can define \minline{cata} as:
 \begin{minted}{Haskell}
 cata :: Functor f => (f a -> a) -> Fix f -> a
 cata go = para (go . fmap snd)
@@ -170,7 +172,7 @@ Let us take back our \minline{has2leaves}  but composed with a possible previous
 has2Leaves u v (bind t f)
 \end{minted}
 
-\noindent For fusion to happen, we need to have \minline{bind} on a re-writeable form for a paramorphism, that is to write it in term of \minline{buildR}. The interesting part comes with the fact that \minline{bind} appears also on its \minline{buildR} form, as you can see in figure \ref{fig:bindbuild}. It is necessary since we need to perform the \minline{bind} operation also on the unconsumed part of the tree if we are fusing with a paramorphism. Since with \minline{has2Leaves} we also destruct the the unconsumed part of the tree using \minline{hasLeaf} (a catamorphism), one can hope that fusion happen here too, so we need this bind to be also in a rewritable form, so we introduce \minline{bindR} which is just \minline{bind} in its \minline{buildR} form.
+\noindent For fusion to happen, we need to have \minline{bind} on a re-writeable form for a paramorphism, that is to write it in term of \minline{buildR}. The interesting part comes with the fact that \minline{bind} appears also on its \minline{buildR} form, as you can see in figure \ref{fig:bindbuild}. It is necessary since we need to perform the \minline{bind} operation also on the unconsumed part of the tree if we are fusing with a paramorphism. Since with \minline{has2Leaves} we also destruct the unconsumed part of the tree using \minline{hasLeaf} (a catamorphism), one can hope that fusion happen here too, so we need this bind to be also in a rewritable form, so we introduce \minline{bindR} which is just \minline{bind} in its \minline{buildR} form.
 
 TODO infinite buildR
 
@@ -223,11 +225,11 @@ We now have three rules, and we need all of them. Indeed, \verb|"cata/buildR"| a
 \begin{minted}{Haskell}
 bind (bind t f) g
 \end{minted}
-\noindent the two \minline{bind} will be inlined into their \minline{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to do a case analysis on the destructive function. A possibility is to perform directly the case analysis, but this will duplicate the occurrences of the second \minline{bind} into the body of the first, and GHC is smart enough to create a variable to reduce code duplication, no knowing that this duplication will be optimized after. So we can use \minline{destruct}, and performing the case analysis in its argument. Hence, without a too early inlining of it, the second \minline{bind} appears only once, and we can fuse it using \verb|"destruct/buildR"|.
+\noindent the two \minline{bind} will be inlined into their \minline{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to do a case analysis on the destructive function. A possibility is to perform directly the case analysis, but this will duplicate the occurrences of the second \minline{bind} into the body of the first, and GHC is smart enough to create a variable to reduce code duplication, no knowing that it will be optimized after. So we can use \minline{destruct}, and performing the case analysis in its argument. Hence, without a too early inlining of it, the second \minline{bind} appears only once, and we can fuse it using \verb|"destruct/buildR"|.
 
 \subsubsection{Compatibility with GHC's rules on lists}
 \label{sec:parabuild}
-To be able to fuse eligible paramorphisms with functions that are working on lists, one need to have access to paramorphisms \emph{for lists}. Moreover, these paramorphisms must be expressed with \minline{foldr}, since we want to preserve list-fusion with the \verb|"foldr/build"| rule. The solution is to give a copy of the structure at each steps. Sadly, this definition is not what we need. Indeed, imagine that you want, for example, produce a fixed-point list from a classical list, but allowing fusion with \emph{both} list producers and \minline{List} consumers, you will have to do something like:
+To be able to fuse eligible paramorphisms with functions that are working on lists, one need to have access to paramorphisms \emph{for lists}. Moreover, these paramorphisms must be expressed with \minline{foldr}, since we want to preserve list-fusion with the \verb|"foldr/build"| rule. The solution is to give a copy of the structure at each step. Sadly, this definition is not what we need. Indeed, imagine that you want, for example, produce a fixed-point list from a classical list, but allowing fusion with \emph{both} list producers and \minline{List} consumers, you will have to do something like:
 \begin{minted}{Haskell}
 fromClassicalList :: [a] -> List a
 fromClassicalList xs = 
@@ -238,5 +240,6 @@ fromClassicalList xs =
       (nil,(u NilF))
     xs
 \end{minted}
-Excuse the non-exhaustive pattern matching, this is the only interesting case. So the obvious problem is that, even if \minline{u} is guaranteed to not use both the not-consumed structure and the recursive call, they need to be both available. The medication is here worth than the disease, and if we perform fusion with lists, we must do it with, for now, only catamorphisms.
+Excuse the non-exhaustive pattern matching, this is the only interesting case. So the obvious problem is that, even if \minline{u} is guaranteed to not use both the not-consumed structure and the recursive call, they need to be both available. The medication is here worse than the disease, and if we perform fusion with lists, we must do it with, for now, only catamorphisms.
+
 % + TODO relire papier PeytonJones (playing by the rules)

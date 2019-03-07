@@ -93,7 +93,7 @@ foldr ((+) . (*) 2) 0 xs
 \noindent While the first one is more comprehensible, it builds an intermediate list that is not needed. The second version is optimized and will only go through the original list once.
 This optimization, called \emph{deforestation} (introduced by Wadler \cite{WADLER1990231}) can be made at compile-time and thus allowing the user to write a readable code while the compiler optimize it when it can; this is known for a long time, explained by Gill et al. \cite{Gill:1993:SCD:165180.165214} and implemented by Peyton Jones et al. \cite{pbr} for GHC.
 
-Destruct a recursive structure (like \minline{foldr} for lists) is a very common operation and can be generally defined for fixed point types (section \ref{sec:recschemes}). Then, a legitimate question is to ask if we can perform deforestation, that is fuse a destruction with a modification or a construction of the original structure. We show that this is also possible for fixed point types (section \ref{sec:rectypes}), and we propose an implementation.
+Destruct a recursive structure (like \minline{foldr} for lists) is a very common operation and can be generally defined for fixed point types (section \ref{sec:recschemes}). Then, a legitimate question is to ask if we can perform deforestation, that is fuse a destruction with a modification or a construction of the original structure. Gill et al. postulated that this was possible: we show that this is indeed achievable for fixed point types (section \ref{sec:rectypes}), and we propose an implementation.
 Finally, the approach taken is very general, and we show it can be extended for more complex fusion rules (section \ref{sec:para}) .
 
 \section{Recursion schemes}

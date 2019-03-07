@@ -115,21 +115,23 @@ Sadly, this restriction is not easy to encode in type for \minline{Fix}: a valid
 \subsection{Implementation}
 \label{sec:para-impl}
 
-It is well-known that every catamorphism is a paramorphism where the combination function just don't use the unconsumed structure. Indeed, you can define \minline{cata} as:
+It is well-known that every catamorphism is a paramorphism where the combination function don't use the unconsumed structure. Indeed, you can define \minline{cata} as:
 \begin{minted}{Haskell}
 cata :: Functor f => (f a -> a) -> Fix f -> a
 cata go = para (go . fmap snd)
 {-# INLINE cata #-}
 \end{minted}
 
-\noindent We can then define a rule that will only target paramorphisms. However, paramorphism fusion is not as classy as the catamorphisms one. This solution implies two main problems:
+\noindent We can then define a rule that will only target paramorphisms. However, paramorphism fusion is not as classy as the catamorphisms one. Having only one rule implies two main problems:
 \begin{itemize}
-\item We cannot target \minline{cata coerce}, since \minline{cata} is just \minline{para}. We cannot either target\\ \minline{para (coerce . fmap snd)}, since \minline{fmap} is a class function.
+\item We cannot target \minline{cata coerce}, since \minline{cata} is just \minline{para}. We cannot either target\\ \minline{para (coerce . fmap snd)}, since \minline{fmap} is a class function; it is consequently difficult to avoid unneeded destruction %todo such as...
 
-\item It is not compatible with GHC's \minline{build}. This is discussed in section \ref{sec:parabuild}.
+\item It is not compatible with GHC's \minline{build}, as discussed in section \ref{sec:parabuild}.
 \end{itemize}
 
-We consequently choose to target a specific function that represent either a catamorphism or a paramorphism, called \minline{destruct}, defined with according rules in figure \ref{fig:para}. This choice has some consequences, each described below:
+We consequently choose to target a specific function that represent either a catamorphism or a paramorphism, called \minline{destruct}, defined with according rules in figure \ref{fig:para}.
+%todo explain more
+This choice has obviously some consequences, each described below.
 
 \begin{figure}
 \begin{minted}{Haskell}
@@ -174,7 +176,7 @@ has2Leaves u v (bind t f)
 
 \noindent For fusion to happen, we need to have \minline{bind} on a re-writeable form for a paramorphism, that is to write it in term of \minline{buildR}. The interesting part comes with the fact that \minline{bind} appears also on its \minline{buildR} form, as you can see in figure \ref{fig:bindbuild}. It is necessary since we need to perform the \minline{bind} operation also on the unconsumed part of the tree if we are fusing with a paramorphism. Since with \minline{has2Leaves} we also destruct the unconsumed part of the tree using \minline{hasLeaf} (a catamorphism), one can hope that fusion happen here too, so we need this bind to be also in a rewritable form, so we introduce \minline{bindR} which is just \minline{bind} in its \minline{buildR} form.
 
-TODO infinite buildR
+%TODO infinite buildR: There does not seems to be a valid way to handle this (and a very reduced interest)
 
 \begin{figure}
 \begin{minted}{Haskell}

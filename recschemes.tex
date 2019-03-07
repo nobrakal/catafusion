@@ -4,7 +4,7 @@ Recursion schemes are almost everywhere in functional programming. They generali
 
 \subsection{Fixed-point types}
 \label{subsec:defi}
-First of all, we need to define what is a recursive structure. They can be defined as \emph{fixed point}, using the \minline{Fix} data-type:
+First of all, we need to define what is a recursive structure. They can be defined as \emph{fixed points}, using the \minline{Fix} data-type:
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}

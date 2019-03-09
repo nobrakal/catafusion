@@ -89,7 +89,7 @@ bad = cata go $ buildR $ \u -> u L `seq` u R
 \end{minted}
 \minline{Bin} is a non-recursive type with two constructors validly defined in terms of \minline{Fix} (which allow us to use \minline{cata} and \minline{buildR}). Now consider the \minline{bad} expression: it constructs a \minline{Bin} using \minline{R} and then destruct it, with a partial function, defined only for \minline{R}. Without rewrite rules, the function simply returns \minline{0} (since \minline{u} is replaced by \minline{Fix}). Now with our \verb|cata/buildR| rule, \minline{u} is replaced by \minline{go}, and we precisely force the definition of \minline{go} on \minline{L}, so the whole expression in now \minline{undefined}.
 
-Fortunately, as noticed by Johann and Voigtländer \cite{JV04}, one can recover free theorems by requiring more properties on the combination function (like strictness and totality), but this is beyond our scope.
+Fortunately, as described by Johann and Voigtländer \cite{JV04}, one can recover free theorems by requiring more properties on the combination function (like strictness and totality), but this is beyond our scope.
 
 \subsection{Implementation}
 The implementation is pretty straightforward using GHC's rewrite rules described in the great work of Peyton Jones et al. \cite{pbr}.

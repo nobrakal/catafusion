@@ -103,7 +103,7 @@ unfoldr f b =
 ana :: Functor f => (b -> f b) -> b -> Fix f
 ana f b = c where c = Fix . fmap c . f
 \end{minted}
-The first argument is a function that, from a seed produce a base structure, filled with seeds. Then you can iterate the process and obtain a full structure. For example, with lists we can write \minline{unfoldr} in term of \minline{ana}.
+The first argument is a function that, from a seed, produce a base structure filled with seeds. Then you can iterate the process and obtain a full structure. For example, with lists we can write \minline{unfoldr} in term of \minline{ana}.
 \begin{minted}{Haskell}
 unfoldr :: (b -> Maybe (a, b)) -> b -> List a
 unfoldr f = ana go . f

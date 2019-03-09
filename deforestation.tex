@@ -120,23 +120,36 @@ type Cata f = forall b. (f b -> b) -> b
 \end{minted}
 This rule is genuinely replacing all occurrences of\\ \minline{cata f (buildR g)} by \minline{g f} \emph{when types matches}, that is when the argument of \minline{buildR} are allowing fusion. The \minline{[~1]} parameter will disable the rule in the final phase, so we can rewrite un-merged functions back.
 
+\subsubsection{The problem of inlining of recursive functions}
+GHC is not (at all) very keen to inline recursive functions. Since we rewrite many things, there is sometimes an expression like:
+\begin{minted}{Haskell}
+cata go (fix x)
+\end{minted}
+ending up in the code, and will not be optimized to the equivalent 
+\begin{minted}{Haskell}
+go x
+\end{minted}
+Fortunately, the work of Peyton Jones \cite{PeytonJones:2007:CSH:1291151.1291200} offers the needed optimizations, through call-pattern specialisation, enabled using the GHC's flag: \verb|-fspec-constr|.
+
 \subsection{Rewrite unneeded destructions}
 \label{sec:bind-def}
-All our work if focused on destructing structures. It is working great but can have unwanted implications. Consider the following code, implementing \minline{bind} for recursive trees:
+All our work if focused on destructing structures. It is working great but can have unwanted implications. Consider the following code, implementing \minline{bind} for recursive trees (as defined in figure \ref{fig:listtree}):
 
 \begin{minted}{Haskell}
 bind :: Tree a -> (a -> Tree b) -> Tree b
-bind t f = buildR
-  (\u -> cata
+bind t f = buildR $ \u ->
+  cata
     (\x ->
       case x of
         EmptyF -> u EmptyF
         LeafF x -> cata u (f x)
         NodeF a b -> u (NodeF a b))
-    t)
+    t
 \end{minted}
 
-\noindent Given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by another function than \minline{Fix}, for example, something that calculate the sum of the leaves of the tree, thus we effectively need to "destruct" the graph constructed by \minline{f}. The solution is to use a second rewriting rule that get rid of the identity catamorphism. Due to the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned (section 6.5 of the previously mentioned article) and we can target the function that replace \minline{Fix}: \minline{coerce}.
+\noindent Given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by another function than \minline{Fix}, for example, something that calculate the number the leaves of the tree, thus we effectively need to "destruct" the tree constructed by \minline{f}, even if it induces an unwanted destruction/reconstruction without rewriting. The solution is to use a second rewrite rule that get rid of the identity catamorphism.
+
+Due to the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Fortunately, this use case was planned (section 6.5 of the previously mentioned article) and we can target the function that replace \minline{Fix}: \minline{coerce}.
 
 \begin{minted}{Haskell}
 {-# RULES
@@ -145,7 +158,7 @@ bind t f = buildR
  #-}
 \end{minted}
 
-\noindent As a side note, this little problem induce a possible limitation but easily solved: the real need for optimizations. Rewrite rules mechanism are enabled either when required by the user or where optimization is enabled; fortunately, \verb|cabal| enable it by default. If rewrite are not enabled, the direct use of \minline{build} in \minline{bind} body will introduce an unwanted and unneeded traversal of the part of the graph as showed. This is solved (and this is the solution taken by the \verb|GHC.Base| module), it to define "normally" \minline{bind}, and add a rewrite rule to rewrite it in its \minline{build} form.
+\noindent As a side note, this little problem induces a possible limitation but easily solved: the real need for optimizations. Rewrite rules mechanism are enabled either when required by the user or where optimization is enabled; fortunately, \verb|cabal| enables it by default. If rewrite rules are not enabled, the direct use of \minline{build} in \minline{bind} body will introduce an unwanted and unneeded traversal of the part of the tree as showed. This is solved (and this is the solution taken by the \verb|GHC.Base| module), it to define "normally" \minline{bind}, and add a rewrite rule to rewrite it in its \minline{build} form.
 
 Note also that, as Voigtländer \cite{Voigtlnder2008TypesFP} noticed for \minline{map}, \minline{bind} for \minline{Tree} is expressed both with \minline{buildR} and \minline{cata}, thus it can be fused with \emph{both} producers and consumers of trees.
 
@@ -165,7 +178,7 @@ map f xs = buildR $ \u ->
 \begin{minted}{Haskell}
 foldr c e (map f xs)
 \end{minted}
-(with \minline{foldr} defined as in section \ref{subsec:defi}) will first be rewritten (only by inlining) as:
+(with \minline{foldr} defined as in section \ref{subsec:defi}) is rewritten, only by inlining, as:
 \begin{minted}{haskell}
 cata go' $ buildR $ \u ->
   let go x = case x of
@@ -178,8 +191,8 @@ cata go' $ buildR $ \u ->
 \begin{minted}{haskell}
 let go x = case x of
   NilF -> go' NilF
-  ConsF a b -> go' (ConsF (f a) b) in
-cata go xs
+  ConsF a b -> go' (ConsF (f a) b)
+in cata go xs
 \end{minted}
 That is exactly what we wanted!
 
@@ -191,12 +204,12 @@ ana f b = buildR $ \u ->
   let c = u . fmap c . f in c b
 \end{minted}
 
-\noindent Then fusion of catamorphism composed with an anamorphism is automatic. In fact, this rule system allows optimization even if we are moving from some structures to some others: one can convert a list to a binary tree then reduce it to a boolean: it will, finally, only be a big catamorphism on the original list. 
+\noindent Then the fusion of a catamorphism composed with an anamorphism is automatic. In fact, this rule system allows optimization even if we are moving from some structures to some others: one can convert a list to a binary tree then reduce it to a boolean: it will, finally, only be a big catamorphism on the original list. 
 
 \subsection{Compatibility with GHC's rules on lists}
 Our work is compatible with the one already made in the \verb|GHC.Base| and \verb|GHC.List| modules (described by Peyton Jones et al. \cite{pbr}) in the sense that one can write a function that destruct a (Prelude) list (using \verb|foldr| or any "good consumer" of lists) to a fixed-point structure \emph{that can be fused with list producers and fixed-point structure consumers}.
 
-Let us take an example with \minline{Tree}, by defining\\ \minline{treeFromList} that convert a list to a degenerate tree (where each node has a leaf):
+Let us take an example with \minline{Tree}, by defining\\ \minline{treeFromList} that convert a list to a "degenerated" tree, where each node has a leaf:
 \begin{minted}{Haskell}
 treeFromList :: [Tree a] -> Tree a
 treeFromList xs = buildR $ \u ->

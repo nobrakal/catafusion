@@ -31,6 +31,12 @@ instance Functor (ListF a) where
 
 type List a = Fix (List a)
 
+nil :: List a
+nil = Fix NilF
+
+cons :: a -> List a -> List a
+cons x xs = Fix (ConsF x xs)
+
 data TreeF a b =
     EmptyF
   | LeafF a
@@ -75,9 +81,7 @@ foldr c e = cata go
 
 \begin{minted}{Haskell}
 cata :: Functor f => (f b -> b) -> Fix f -> b
-cata f = c 
-  where 
-    c (Fix x) = f (fmap c x)
+cata f = c where c (Fix x) = f (fmap c x)
 \end{minted}
 
 \noindent
@@ -94,7 +98,7 @@ unfoldr f b =
     Nothing      -> n
 \end{minted}
 
-\noindent \minline{unfoldr} takes a function that from a seed produce maybe an element and another seed, or nothing. As clever reader already guessed, we can provide anamorphisms for any fixed-point structure, using:
+\noindent \minline{unfoldr} takes a function that, from a starting seed, produces maybe an element and another seed, or nothing. As clever reader already guessed, we can provide anamorphisms for any fixed-point structure, using:
 \begin{minted}{Haskell}
 ana :: Functor f => (b -> f b) -> b -> Fix f
 ana f b = c where c = Fix . fmap c . f

@@ -32,7 +32,7 @@ suff = para go
 
 \subsection{Fusion for paramorphisms}
 
-Now consider the less trivial paramorphism \minline{has2Leaves} defined in figure \ref{fig:has2Leaves} which is searching in a binary tree if there is a node where the first leaf is in the left part, and the second in the right one. This kind of paramorphisms arise naturally when working with more complex structures, likes algebraic graphs of Mokhov \cite{Mokhov:2017:AGC:3156695.3122956}.
+Now consider the less trivial paramorphism \minline{has2Leaves} defined in figure \ref{fig:has2Leaves} which is searching in a binary tree if there is a node where the first leaf is in the left part, and the second in the right one. This kind of paramorphisms arise naturally when working with more complex recursive structures, like algebraic graphs of Mokhov \cite{Mokhov:2017:AGC:3156695.3122956}.
 
 Imagine you are composing it with a \minline{mapt} operation (as defined in section \ref{fig:has2Leaves}). Then
 the function:
@@ -244,4 +244,4 @@ fromClassicalList xs =
 Excuse the non-exhaustive pattern matching, this is the only interesting case. So the obvious problem is that, even if \minline{u} is guaranteed to not use both the not-consumed structure and the recursive call, they need to be both available. The medication is here clearly worse than the disease: we are rebuilding the original list even if we don't use it. As a consequence, if we perform fusion with lists, we must do for now only with catamorphisms.
 
 \subsection{Conclusion}
-This rather more complicated rule system preserves the work made in section \ref{sec:rectypes}, namely that catamorphisms can be fused with "good producers", and extend it to paramorphism fusion with (almost) the same "good producers". However, all things have a price, and a major drawback is that the implementation, and the definition of new functions, is more difficult than with catamorphism fusion alone.
+This rather more complicated rule system preserves the work made in section \ref{sec:rectypes}, namely that catamorphisms can be fused with "good producers", and extend it to paramorphisms fusion with (almost) the same "good producers". However, all things have a price, and a major drawback is that the implementation and the definition of new functions is more difficult than with catamorphisms fusion alone.

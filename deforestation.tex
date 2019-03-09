@@ -87,12 +87,12 @@ bad = cata go $ buildR $ \u -> u L `seq` u R
     go L = undefined
     go R = 0
 \end{minted}
-\minline{Bin} is a non-recursive type with two constructors validly defined in terms of \minline{Fix} (which allow us to use \minline{cata} and \minline{buildR}). Now consider the \minline{bad} expression: it constructs a \minline{Bin} using \minline{R} and then destruct it, with a partial function, defined only for \minline{R}. Without rewrite rules, the function simply returns \minline{0} (since \minline{u} is replaced by \minline{Fix}). Now with our \verb|cata/buildR| rule, \minline{u} is replaced by \minline{go}, and we precisely force the definition of \minline{go} on \minline{L}, so the whole expression in now \minline{undefined}. 
+\minline{Bin} is a non-recursive type with two constructors validly defined in terms of \minline{Fix} (which allow us to use \minline{cata} and \minline{buildR}). Now consider the \minline{bad} expression: it constructs a \minline{Bin} using \minline{R} and then destruct it, with a partial function, defined only for \minline{R}. Without rewrite rules, the function simply returns \minline{0} (since \minline{u} is replaced by \minline{Fix}). Now with our \verb|cata/buildR| rule, \minline{u} is replaced by \minline{go}, and we precisely force the definition of \minline{go} on \minline{L}, so the whole expression in now \minline{undefined}.
 
 Fortunately, as noticed by Johann and Voigtländer \cite{JV04}, one can recover free theorems by requiring more properties on the combination function (like strictness and totality), but this is beyond our scope.
 
 \subsection{Implementation}
-The implementation is pretty straightforward using GHC's rewrite rules described in the great work of Peyton Jones et al. \cite{pbr}. 
+The implementation is pretty straightforward using GHC's rewrite rules described in the great work of Peyton Jones et al. \cite{pbr}.
 
 A rewrite rule consist in a name and body. The body is an equality were free variables are bounded by a universal quantifier. When the left part of the equality is encountered in the code (and types match), it is replaced by the right part (more details can be found on GHC's manual \cite{ghc:manual}).
 
@@ -125,7 +125,7 @@ GHC is not (at all) very keen to inline recursive functions. Since we rewrite ma
 \begin{minted}{Haskell}
 cata go (fix x)
 \end{minted}
-ending up in the code, and will not be optimized to the equivalent 
+ending up in the code, and will not be optimized to the equivalent
 \begin{minted}{Haskell}
 go x
 \end{minted}
@@ -204,7 +204,7 @@ ana f b = buildR $ \u ->
   let c = u . fmap c . f in c b
 \end{minted}
 
-\noindent Then the fusion of a catamorphism composed with an anamorphism is automatic. In fact, this rule system allows optimization even if we are moving from some structures to some others: one can convert a list to a binary tree then reduce it to a boolean: it will, finally, only be a big catamorphism on the original list. 
+\noindent Then the fusion of a catamorphism composed with an anamorphism is automatic. In fact, this rule system allows optimization even if we are moving from some structures to some others: one can convert a list to a binary tree then reduce it to a boolean: it will, finally, only be a big catamorphism on the original list.
 
 \subsection{Compatibility with GHC's rules on lists}
 Our work is compatible with the one already made in the \verb|GHC.Base| and \verb|GHC.List| modules (described by Peyton Jones et al. \cite{pbr}) in the sense that one can write a function that destruct a (Prelude) list (using \verb|foldr| or any "good consumer" of lists) to a fixed-point structure \emph{that can be fused with list producers and fixed-point structure consumers}.

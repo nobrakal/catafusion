@@ -103,7 +103,7 @@ suff (map f xs)
 let go x =
   case x of
     NilF -> nil
-    ConsF x (xs,b) -> 
+    ConsF x (xs,b) ->
       cons (map f (cons x xs)) b
   in para go xs
 \end{minted}
@@ -135,8 +135,8 @@ This choice has obviously some consequences, each described below.
 \begin{minted}{Haskell}
 type Combi f a =
   Either (f a -> a) (f (Fix f, a) -> a)
-  
-type Para f = forall a. Combi f a -> a 
+
+type Para f = forall a. Combi f a -> a
 
 destruct :: Functor f => Combi f a -> Fix f -> a
 destruct (Left c)  = cata c
@@ -181,7 +181,7 @@ This leads to a problem: to cover all cases, we need to "unroll" \minline{build}
 bind :: Tree a -> (a -> Tree b) -> Tree b
 bind t f = buildR $ \u -> destruct (
   case u of
-    Left u -> Left $ \x -> 
+    Left u -> Left $ \x ->
       case x of
         EmptyF -> u EmptyF
         LeafF x -> cata u (f x)
@@ -198,7 +198,7 @@ bind t f = buildR $ \u -> destruct (
 bindR :: Tree a -> (a -> Tree b) -> Tree b
 bindR t f = buildR $ \u -> destruct (
   case u of
-    Left u -> Left $ \x -> 
+    Left u -> Left $ \x ->
       case x of
         EmptyF -> u EmptyF
         LeafF x -> cata u (f x)
@@ -232,10 +232,10 @@ bind (bind t f) g
 To be able to fuse eligible paramorphisms with functions that are working on lists, one need to have access to paramorphisms \emph{for lists}. Moreover, these paramorphisms must be expressed with \minline{foldr}, since we want to preserve list-fusion with the \verb|"foldr/build"| rule. The solution is to give a copy of the structure at each step. Sadly, this definition is not what we need. Indeed, imagine that you want, for example, produce a fixed-point list from a classical list, but allowing fusion with \emph{both} list producers and \minline{List} consumers, you will have to do something like:
 \begin{minted}{Haskell}
 fromClassicalList :: [a] -> List a
-fromClassicalList xs = 
+fromClassicalList xs =
   buildR $ \(Right u) -> snd $
-    foldr 
-      (\x (xs,y) -> 
+    foldr
+      (\x (xs,y) ->
         (cons x xs, u $ ConsF x $ (xs,y)))
       (nil,(u NilF))
     xs

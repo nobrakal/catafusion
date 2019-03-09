@@ -1,10 +1,10 @@
 %!TEX root = fusion.tex
 
-Recursion schemes are almost everywhere in functional programming. They generalize very common patterns: constructing a structure and destructing it recursively. They were popularized by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}, which are giving them a categorical meaning. Our goal is not to study these strong mathematical foundations, but just define and use recursive schemes on a particular case: fixed-point types.
+Recursion schemes are almost everywhere in functional programming. They generalize mainly two very common patterns: constructing a structure and destructing it recursively. They were popularized by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}, which are giving them a categorical meaning. Our goal is not to study these strong mathematical foundations, but just define and use recursive schemes on a particular case: fixed-point types.
 
 \subsection{Fixed-point types}
 \label{subsec:defi}
-First of all, we need to define what is a recursive structure. They can be defined as \emph{fixed points}, using the \minline{Fix} data-type:
+First of all, classic recursive structure can be defined as \emph{fixed-points}, using the \minline{Fix} data-type:
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}
@@ -60,7 +60,7 @@ foldr :: (a -> b -> b) -> b -> [a] -> b
 foldr _ z []     = z
 foldr k z (y:ys) = k y (foldr k z ys)
 \end{minted}
-The idea of \minline{foldr} is that, if you provide a definition for the empty list and another for the \verb|cons| operation, then you can go trough a list and destruct it. Note that in this definition, you didn't use the concept of list but just its constructors; consequently you can use this concept for any other recursive type. The definition of a type in term of \minline{Fix} allows a straightforward implementation of \minline{cata}, a high-order function for catamorphisms.
+The idea of \minline{foldr} is that, if you provide a definition for the empty list and another for the \verb|cons| operation, then you can go trough a list and destruct it. Note that we didn't use the concept of list but just its constructors; consequently you can use this concept for any other recursive type. The definition of a type in term of \minline{Fix} allows a straightforward implementation of \minline{cata}, a high-order function for catamorphisms.
 
 \begin{minted}{Haskell}
 cata :: Functor f => (f a -> a) -> Fix f -> a
@@ -98,7 +98,7 @@ unfoldr f b =
     Nothing      -> n
 \end{minted}
 
-\noindent As clever reader already guessed, we can provide anamorphisms for any recursive structure, using:
+\noindent \minline{unfoldr} takes a function that from a seed produce maybe an element and another seed, or nothing. As clever reader already guessed, we can provide anamorphisms for any fixed-point structure, using:
 \begin{minted}{Haskell}
 ana :: Functor f => (b -> f b) -> b -> Fix f
 ana f b = c where c = Fix . fmap c . f
@@ -113,8 +113,8 @@ unfoldr f = ana go . f
 \end{minted}
 
 \subsection{Fusion of recursive schemes - hylomorphisms}
-A first nice result on this recursive schemes is that the composition of an anamorphism with a catamorphism can be optimized to remove the need of building the intermediate structure: we then obtain a \emph{hylomorphism} (this is correctly proved by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}).
-Using (as in the \verb|recursion-schemes| package \cite{ekmett:eschems}):
+A first nice result on these recursive schemes is that the composition of an anamorphism with a catamorphism can be optimized to remove the need of building the intermediate structure: we then obtain a \emph{hylomorphism} (this is correctly proved by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}).
+Hylomorphisms can be expressed using \minline{hylo} (as in the \verb|recursion-schemes| package \cite{ekmett:eschems}):
 \begin{minted}{Haskell}
 hylo :: Functor f =>
   (f b -> b) -> (a -> f a) -> a -> b

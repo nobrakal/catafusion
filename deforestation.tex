@@ -1,20 +1,20 @@
 %!TEX root = fusion.tex
 
-Deforestation is a process first introduced by Wadler \cite{WADLER1990231} and realized in Haskell by Gill et al. \cite{Gill:1993:SCD:165180.165214}. It is the idea that one can eliminate a structure produced by "good function" (like an anamorphism) and destructed right away by a catamorphism.
+Deforestation is a process first introduced by Wadler \cite{WADLER1990231} and realized in Haskell by Gill et al. \cite{Gill:1993:SCD:165180.165214}. It is the idea that one can eliminate a structure produced by "good function" (like an anamorphism) and destructed right away by a catamorphism, since we know how the intermediate structure was built.
 
-The first example of this concept is on lists with the expression:
+A first example of this concept is on lists with the expression:
 \begin{minted}{Haskell}
 foldr c e (map f xs)
 \end{minted}
-\minline{map} will destruct the original list and produce a new one, which will be destructed after with \minline{foldr}. The key thing is that we know how \minline{map} will construct the new list. Obviously, the above expression is equivalent to a more efficient one:
+\minline{map} will destruct the original list and produce a new one, which will be destructed right away by \minline{foldr}. It is easy to see that the above expression is equivalent to a more efficient one:
 \begin{minted}{Haskell}
 foldr (c . f) e xs
 \end{minted}
-The above expression will go through the list only once.
+\noindent where we go through the list only once.
 The rewriting operation we made in this example is again not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \minline{map}. This concept can be simply generalized to recursive structure, as we will show in the next section.
 
 \subsection{The idea}
-Deforestation can be implemented on recursive types imitating the work of Gill et al. \cite{Gill:1993:SCD:165180.165214}. Applying \minline{cata go} to a recursive structure has just the effect to replace every occurrence of \minline{Fix} by \minline{go} in the structure. Consequently, the idea is to abstract structure-producing functions with respect to \minline{Fix}. This is done using \minline{buildR}.
+Deforestation can be implemented on fixed-point types imitating the work of Gill et al. \cite{Gill:1993:SCD:165180.165214}. Applying \minline{cata go} to a fixed*point structure has just the effect to replace every occurrence of \minline{Fix} by \minline{go}. Consequently, the idea is to abstract structure-producing functions with respect to \minline{Fix}. This is done using \minline{buildR}.
 
 \begin{minted}{Haskell}
 type Cata f = forall b. (f b -> b) -> b
@@ -31,10 +31,10 @@ ana f b = buildR
 \end{minted}
 
 \subsubsection{Validity}
-We have the lovely property that:
+At first glance, we have the lovely property that:
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 
-This is exactly what we want: the right-side of the equation \emph{does not} build an intermediate structure. The validity of the above rule is guaranteed by the type (more precisely the rank-2 one).
+This is exactly what we want: the right-side of the equation \emph{does not} build an intermediate structure. The validity of the above rule is guaranteed by the type (more precisely the rank-2 one), but as we show in section \ref{sec:seq} it is a semantic equivalence valid only without the presence of \minline{seq} and \minline{undefined}.
 
 \begin{theorem}
 Using, for a fixed parametric type $F$, a valid instance of $Functor$, and a type $A$:
@@ -50,7 +50,7 @@ This is a consequence of free theorems of Wadler \cite{Wadler:1989:TF:99370.9940
 [\ \forall& x::C.\ f\ (p\ x)\ =\ q\ (fmap\ f\ x)\ ]\\
 &\implies f\ (g\ p)\ =\ g\ q
 \end{align*}
-Now we can pose:
+Now we can instantiate:
 \begin{itemize}
 	\item $C\ =\ Fix\ F$, $D\ =\ A$
 	\item $f\ =\ cata\ go$
@@ -63,18 +63,19 @@ then we have
 &cata\ go\ (fix\ x)\ =\ go\ (fmap\ (cata\ go)\ x)\ ]\\
 &\implies cata\ go\ (g\ fix)\ =\ g\ go
 \end{align*}
-Given the definition of $cata$, the premise trivially holds. So we have the conclusion:
+Given the definition of $cata$, the premise trivially holds, so we have the conclusion:
 $$cata\ go\ (g\ fix)\ =\ g\ go$$
 Given the definition of $buildR$, this is exactly what we required.
 \end{proof}
 
 \subsubsection{A note on $\bot$ and \minline{seq}}
+\label{sec:seq}
 Free theorems are known to (partially) fails in presence of $\bot$ (\minline{undefined} in Haskell) and \minline{seq}, defined in the Haskell report \cite{haskellReport} as a function respecting the following equation:
 \begin{align*}
 seq\ \bot\ b\ &=\ \bot\\
 seq\ a\ b\ &=\ b\ \mathrm{,if}\ a\ \neq\ \bot
 \end{align*}
-That is, a function forcing the evaluation of its first argument and returning the second. This characterization is sufficient to break our rule (as it breaks also the \verb|foldr/build| one). Consider the following example:
+\minline{seq} a function forcing the evaluation of its first argument and returning the second. This characterization is sufficient to break our rule (as it breaks also the \verb|foldr/build| one). Consider the following example:
 
 \begin{minted}{Haskell}
 data BinF a = L | R deriving (Functor)
@@ -91,11 +92,13 @@ bad = cata go $ buildR $ \u -> u L `seq` u R
 Fortunately, as noticed by Johann and Voigtländer \cite{JV04}, one can recover free theorems by requiring more properties on the combination function (like strictness and totality), but this is beyond our scope.
 
 \subsection{Implementation}
-The implementation is pretty straightforward using GHC's rewrite rules described in the great work of Peyton Jones et al. \cite{pbr}. A rewrite rule consist in a name and body. The body is an equality were free variables are bounded by a universal quantifier. When the left part of the equality is encountered in the code (and types match), it is replaced by the right part. More details can be found on GHC's manual \cite{ghc:manual}.
+The implementation is pretty straightforward using GHC's rewrite rules described in the great work of Peyton Jones et al. \cite{pbr}. 
+
+A rewrite rule consist in a name and body. The body is an equality were free variables are bounded by a universal quantifier. When the left part of the equality is encountered in the code (and types match), it is replaced by the right part (more details can be found on GHC's manual \cite{ghc:manual}).
 
 A rewrite rule can also specify a phase constraint. GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to ensure when the rules are firing and when functions are inlined.
 
-We want our rules to be compatible with those for lists already in place (the \verb|foldr/build| of Gill et al. \cite{Gill:1993:SCD:165180.165214}). They all target the \minline{bind} (defined in\verb|GHC.Base|) functions that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2. Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add a
+We want our rules to be compatible with those for lists already in place (the \verb|foldr/build| of Gill et al. \cite{Gill:1993:SCD:165180.165214}). They all target the \minline{bind} (defined in \verb|GHC.Base|) functions that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2. Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add a
 \begin{minted}{Haskell}
 {-# INLINE [1] buildR #-}
 \end{minted}
@@ -191,7 +194,7 @@ ana f b = buildR $ \u ->
 \noindent Then fusion of catamorphism composed with an anamorphism is automatic. In fact, this rule system allows optimization even if we are moving from some structures to some others: one can convert a list to a binary tree then reduce it to a boolean: it will, finally, only be a big catamorphism on the original list. 
 
 \subsection{Compatibility with GHC's rules on lists}
-Our work is compatible with the one already made in the \verb|GHC.Base| and \verb|GHC.List| modules (described by Peyton Jones et al. \cite{pbr}) in the sense that one can write a function that destruct a (Prelude) list (using \verb|foldr| or any "good consumer" of lists) to a fixed point structure \emph{that can be fused with list producers and fixed-point structure consumers}.
+Our work is compatible with the one already made in the \verb|GHC.Base| and \verb|GHC.List| modules (described by Peyton Jones et al. \cite{pbr}) in the sense that one can write a function that destruct a (Prelude) list (using \verb|foldr| or any "good consumer" of lists) to a fixed-point structure \emph{that can be fused with list producers and fixed-point structure consumers}.
 
 Let us take an example with \minline{Tree}, by defining\\ \minline{treeFromList} that convert a list to a degenerate tree (where each node has a leaf):
 \begin{minted}{Haskell}

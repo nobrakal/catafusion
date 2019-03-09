@@ -4,7 +4,7 @@
 
 As far as we did, we worked only on catamorphisms. These are not really satisfying to define recursive functions that also use the unconsumed part of the structure. A \emph{paramorphism} (introduced by Meertens \cite{Meertens1992}) is a direct response, as it allows the combination function to have a look on the unconsumed part of the structure (imitating the full power of recursion).
 
-They can be defined for lists using \minline{para}
+They can be defined for lists using \minline{para}:
 \begin{minted}{Haskell}
 para :: (a -> [a] -> b -> b) -> b -> [a] -> b
 para _ z []     = z

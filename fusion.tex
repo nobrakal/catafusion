@@ -1,4 +1,4 @@
-\documentclass[format=sigplan]{acmart}
+\documentclass[format=sigplan, review=true, anonymous=true]{acmart}
 
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
@@ -41,7 +41,7 @@
 }
 
 \begin{abstract}
-Recursive structure are everywhere in Haskell, constructed and destructed continuously. It is known that such manipulations can sometimes be optimized to avoid the construction of intermediate structures with a process called deforestation. In this article, we propose a simple automatic technique to perform it on fixed-point types using the GHC rewrite rules system.
+Recursive structures are everywhere in Haskell, constructed and destructed continuously. It is known that such manipulations can sometimes be optimized to avoid the construction of intermediate structures with a process called deforestation. In this article, we propose a minimalistic automatic technique to perform it on fixed-point types using the GHC rewrite rules system.
 \end{abstract}
 
 %
@@ -91,9 +91,9 @@ foldr ((+) . (*) 2) 0 xs
 \end{minted}
 
 \noindent While the first one is more comprehensible, it builds an intermediate list that is not needed. The second version is optimized and will only go through the original list once.
-This optimization, called \emph{deforestation} (introduced by Wadler \cite{WADLER1990231}) can be made at compile-time and thus allowing the user to write a readable code while the compiler optimize it when it can; this is known for a long time, explained by Gill et al. \cite{Gill:1993:SCD:165180.165214} and implemented by Peyton Jones et al. \cite{pbr} for GHC.
+This optimization, called \emph{deforestation} (introduced by Wadler \cite{WADLER1990231}) can be made at compile-time and thus allowing the user to write a readable code while the compiler optimize it when it can; this is known for a long time, well explained by Gill et al. \cite{Gill:1993:SCD:165180.165214} and implemented by Peyton Jones et al. \cite{pbr} for GHC.
 
-Destruct a recursive structure (like \minline{foldr} for lists) is a very common operation and can be generally defined for fixed-point types (section \ref{sec:recschemes}). Then, a legitimate question is to ask if we can perform deforestation, that is fusing a destruction with a construction of the original structure. Gill et al. \cite{Gill:1993:SCD:165180.165214} postulated that this was possible: we show that this is indeed achievable for fixed-point types (section \ref{sec:rectypes}). We also propose a minimalistic implementation that makes deforestation available to \emph{any} types defined using our fixed-point constructor. We prove in part the technique and give specific examples.
+Destruct a recursive structure (like \minline{foldr} for lists) is a very common operation and can be generally defined for fixed-point types (section \ref{sec:recschemes}), that is, for classical recursive types. Then, a legitimate question is to ask if we can perform deforestation, namely fusing a destruction with a construction of the original structure. Gill et al. \cite{Gill:1993:SCD:165180.165214} postulated that this was possible: we show that this is indeed achievable for fixed-point types (section \ref{sec:rectypes}). We also propose a minimalistic implementation that makes deforestation available to \emph{any} types defined using our fixed-point constructor. We prove in part the technique and give specific examples.
 Finally, we show that the approach taken can be extended for more complex fusion rules (section \ref{sec:para}) since it is very general.
 
 \section{Recursion schemes}
@@ -113,7 +113,7 @@ Finally, we show that the approach taken can be extended for more complex fusion
 \input{further.tex}
 
 \begin{acks}
-I would like to thank Andrey Mokhov as it suggested me to write this paper and provided great counsels and constant encouragements during the writing. Yann Régis-Gianas, Jospeh Priou and Maxime Flin provided very useful comments and remarks during several presentations of this work.
+I would like to thank Andrey Mokhov as he suggested me to start this paper and provided great counsels and constant encouragements during the writing. Yann Régis-Gianas, Jospeh Priou and Maxime Flin provided very useful comments and remarks during several presentations of this work.
 \end{acks}
 
 

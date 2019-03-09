@@ -2,7 +2,7 @@
 \subsection{Paramorphisms}
 \label{sec:para-list}
 
-As far as we did, we worked only on catamorphisms. These are not really satisfying to define recursive functions that also uses the unconsumed part of the structure. A \emph{paramorphism} (introduced by Meertens \cite{Meertens1992}) is a direct response, as it allows the combination function to have a look on the unconsumed part of the structure, imitating the full power of recursion.
+As far as we did, we worked only on catamorphisms. These are not really satisfying to define recursive functions that also use the unconsumed part of the structure. A \emph{paramorphism} (introduced by Meertens \cite{Meertens1992}) is a direct response, as it allows the combination function to have a look on the unconsumed part of the structure, imitating the full power of recursion.
 
 They can be defined for lists using \minline{paraL}:
 \begin{minted}{Haskell}
@@ -21,7 +21,7 @@ para f = c
 \end{minted}
 
 \noindent What is happening here? As with \minline{cata}, when we are trying to destruct a recursive structure, we are doing the recursive step plus giving a copy of the original data in a tuple.
-For example, we can encode a classic paramorphism, which is giving the list of proper suffixes of a list:
+For example, we can encode a classic paramorphism, which is giving the list of suffixes of a list:
 \begin{minted}{Haskell}
 suff :: List a -> List (List a)
 suff = para go
@@ -32,20 +32,20 @@ suff = para go
 
 \subsection{Fusion for paramorphisms}
 
-Now consider the less trivial paramorphism \minline{has2Leaves} defined in figure \ref{fig:has2Leaves} which searches in a binary tree if there is a node where the first leaf is in the left part, and the second in the right one.
+Now consider the less trivial paramorphism \minline{has2Leaves} defined in figure \ref{fig:has2Leaves} which is searching in a binary tree if there is a node where the first leaf is in the left part, and the second in the right one.
 
 Imagine you are composing it with a \minline{mapt} operation (as defined in section \ref{fig:has2Leaves}). Then
 the function:
 \begin{minted}{Haskell}
-has2LeavesBind :: Eq b =>
+has2LeavesMapt :: Eq b =>
   b -> b -> (a -> b) -> Tree a -> Bool
-has2LeavesBind u v f = has2leaves u v . mapt f
+has2LeavesMapt u v f = has2leaves u v . mapt f
 \end{minted}
 \noindent is equivalent to:
 \begin{minted}{Haskell}
-has2LeavesBind :: Eq b =>
+has2LeavesMapt :: Eq b =>
   b -> b -> (a -> b) -> Tree a -> Bool
-has2LeavesBind u v f t = Edge == para go t
+has2LeavesMapt u v f t = Edge == para go t
   where
     go EmptyF    = Miss
     go (LeafF x) =
@@ -184,12 +184,12 @@ bind t f = buildR $ \u -> destruct (
     Left u -> Left $ \x ->
       case x of
         EmptyF -> u EmptyF
-        LeafF x -> cata u (f x)
+        LeafF y -> cata u (f y)
         NodeF a b -> u $ NodeF a b)
     Right u -> Right $ \x ->
       case x of
         EmptyF -> u EmptyF
-        LeafF x -> para u (f x)
+        LeafF y -> para u (f y)
         NodeF (a,a') (b,b') -> u $
           NodeF (bindR f a,a') (bindR f b, b'))
   t
@@ -201,12 +201,12 @@ bindR t f = buildR $ \u -> destruct (
     Left u -> Left $ \x ->
       case x of
         EmptyF -> u EmptyF
-        LeafF x -> cata u (f x)
+        LeafF y -> cata u (f y)
         NodeF a b -> u $ NodeF a b)
     Right u -> Right $ \x ->
       case x of
         EmptyF -> u EmptyF
-        LeafF x -> para u (f x)
+        LeafF y -> para u (f y)
         NodeF (a,a') (b,b') -> u $
           NodeF (cata go a,a') (cata go b, b'))
   t
@@ -225,11 +225,11 @@ We now have three rules, and we need all of them. Indeed, \verb|"cata/buildR"| a
 \begin{minted}{Haskell}
 bind (bind t f) g
 \end{minted}
-\noindent the two \minline{bind} will be inlined into their \minline{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to do a case analysis on the combination function. A possibility is to perform directly the case analysis, but this will duplicate the occurrences of the second \minline{bind} into the body of the first, and GHC is smart enough to create a variable to reduce code duplication, no knowing that it will be optimized after. So we can use \minline{destruct}, and performing the case analysis in its argument. Hence, without a too early inlining of it, the second \minline{bind} appears only once, and we can fuse it using \verb|"destruct/buildR"|.
+\noindent the two \minline{bind} will be inlined into their \minline{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to do a case analysis on the combination function. A possibility is to perform directly the case analysis, but this will duplicate the occurrences of the second \minline{bind} into the body of the first, and GHC is smart enough to create a variable to reduce code duplication, not knowing that it will be optimized after. So we can use \minline{destruct}, and performing the case analysis in its argument. Hence, without a too early inlining of \minline{buildR}, the second \minline{bind} appears only once, and we can fuse it using \verb|"destruct/buildR"|.
 
 \subsubsection{Compatibility with GHC's rules on lists}
 \label{sec:parabuild}
-To be able to fuse eligible paramorphisms with functions that are working on lists, one need to have access to paramorphisms \emph{for lists}. Moreover, these paramorphisms must be expressed with \minline{foldr}, since we want to preserve list-fusion with the \verb|"foldr/build"| rule. The solution is to give a copy of the structure at each step. Sadly, this definition is not what we need. Indeed, imagine that you want, for example, produce a fixed-point list from a classical list, but allowing fusion with \emph{both} list producers and \minline{List} consumers, you will have to do something like:
+To be able to fuse eligible paramorphisms with functions that are working on lists, one need to have access to paramorphisms \emph{for lists}. Moreover, these paramorphisms must be expressed with \minline{foldr}, since we want to preserve list-fusion with the \verb|"foldr/build"| rule. The classical solution is to give a copy of the list in the accumulating parameter of \minline{foldr}, so it is available for the "upper" combination function. Sadly, this definition is not what we need; indeed, imagine that you want, for example, produce a fixed-point list from a classical list, but allowing fusion with \emph{both} list producers and \minline{List} consumers, you will have to do something like:
 \begin{minted}{Haskell}
 fromClassicalList :: [a] -> List a
 fromClassicalList xs =
@@ -240,6 +240,6 @@ fromClassicalList xs =
       (nil,(u NilF))
     xs
 \end{minted}
-Excuse the non-exhaustive pattern matching, this is the only interesting case. So the obvious problem is that, even if \minline{u} is guaranteed to not use both the not-consumed structure and the recursive call, they need to be both available. The medication is here worse than the disease, and if we perform fusion with lists, we must do it with, for now, only catamorphisms.
+Excuse the non-exhaustive pattern matching, this is the only interesting case. So the obvious problem is that, even if \minline{u} is guaranteed to not use both the not-consumed structure and the recursive call, they need to be both available. The medication is here clearly worse than the disease: we are rebuilding the original list even if we don't use it. As a consequence, if we perform fusion with lists, we must do for now only with catamorphisms.
 
 % + TODO relire papier PeytonJones (playing by the rules)

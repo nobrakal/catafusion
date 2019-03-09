@@ -8,7 +8,7 @@ First of all, classic recursive structure can be defined as \emph{fixed-points},
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}
-\minline{Fix} directly encode recursion in types: you are giving to a parametric type itself, again and again. Note that this data-type is defined with \minline{newtype} (and not simply with a \minline{type} synonym) since it calls itself, but the great work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} will optimize it away at compile time.
+\minline{Fix} directly encodes recursion in types: you are giving to a parametric type itself, again and again. Note that this data-type is defined with \minline{newtype} (and not simply with a \minline{type} synonym) since it calls itself, but the great work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} will optimize it away at compile time.
 
 For example, you can define, as in figure \ref{fig:listtree}
 \minline{(List a)}, isomorphic to \minline{[a]} and \minline{(Tree a)}, isomorphic to the classic recursive structure for binary trees:
@@ -31,12 +31,6 @@ instance Functor (ListF a) where
 
 type List a = Fix (List a)
 
-cons :: a -> List a -> List a
-cons x xs = Fix (ConsF x xs)
-
-nil :: List a
-nil = Fix NilF
-
 data TreeF a b =
     EmptyF
   | LeafF a
@@ -54,13 +48,13 @@ type Tree a = Fix (TreeF a)
 \end{figure}
 
 \subsection{Catamorphisms}
-A \emph{catamorphism} generalize a fold on a recursive structure. For example, catamorphisms on lists can be expressed with the so-called \minline{foldr}.
+A \emph{catamorphism} generalizes a fold on a recursive structure. For example, catamorphisms on lists can be expressed with the so-called \minline{foldr}.
 \begin{minted}{Haskell}
 foldr :: (a -> b -> b) -> b -> [a] -> b
 foldr _ z []     = z
 foldr k z (y:ys) = k y (foldr k z ys)
 \end{minted}
-The idea of \minline{foldr} is that, if you provide a definition for the empty list and another for the \verb|cons| operation, then you can go trough a list and destruct it. Note that we didn't use the concept of list but just its constructors; consequently you can use this concept for any other recursive type. The definition of a type in term of \minline{Fix} allows a straightforward implementation of \minline{cata}, a high-order function for catamorphisms.
+The idea of \minline{foldr} is that, if you provide a definition for the empty list and another for the \verb|cons| operation, then you can go trough a list and destruct it recursively. Note that we didn't use the concept of list but just its constructors; consequently you can use this process for any other recursive type. The definition of a type in term of \minline{Fix} allows a straightforward implementation of \minline{cata}, a high-order function for catamorphisms.
 
 \begin{minted}{Haskell}
 cata :: Functor f => (f a -> a) -> Fix f -> a
@@ -81,7 +75,9 @@ foldr c e = cata go
 
 \begin{minted}{Haskell}
 cata :: Functor f => (f b -> b) -> Fix f -> b
-cata f = c where c (Fix x) = f (fmap c x)
+cata f = c 
+  where 
+    c (Fix x) = f (fmap c x)
 \end{minted}
 
 \noindent

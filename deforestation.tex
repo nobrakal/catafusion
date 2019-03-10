@@ -6,15 +6,15 @@ A first example of this concept is on lists with the expression:
 \begin{minted}{Haskell}
 map g (map f xs)
 \end{minted}
-\minline{map} will destruct the original list and produce a new one, which will be destructed right away by \minline{map}. It is easy to see that the above expression is equivalent to a more efficient one:
+\hs{map} will destruct the original list and produce a new one, which will be destructed right away by \hs{map}. It is easy to see that the above expression is equivalent to a more efficient one:
 \begin{minted}{Haskell}
 map (g . f) xs
 \end{minted}
 \noindent where we go through the list only once.
-The rewriting operation we made in this example is again not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \minline{map}. This concept can be simply generalized to recursive structure, as we will show in the next section.
+The rewriting operation we made in this example is again not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \hs{map}. This concept can be simply generalized to recursive structure, as we will show in the next section.
 
 \subsection{The idea}
-Deforestation can be implemented on fixed-point types imitating the work of Gill et al. \cite{Gill:1993:SCD:165180.165214} on lists. Applying \minline{cata go} to a fixed-point structure has just the effect to replace every occurrence of \minline{Fix} by \minline{go}. Consequently, the idea is to abstract structure-producing functions with respect to \minline{Fix}. This is done using \minline{buildR}.
+Deforestation can be implemented on fixed-point types imitating the work of Gill et al. \cite{Gill:1993:SCD:165180.165214} on lists. Applying \hs{cata go} to a fixed-point structure has just the effect to replace every occurrence of \hs{Fix} by \hs{go}. Consequently, the idea is to abstract structure-producing functions with respect to \hs{Fix}. This is done using \hs{buildR}.
 
 \begin{minted}{Haskell}
 type Cata f = forall b. (f b -> b) -> b
@@ -23,7 +23,7 @@ buildR :: Cata f -> Fix f
 buildR g = g Fix
 \end{minted}
 
-\noindent Intuitively, the argument of \minline{buildR} is a function that can, for all type \minline{b}, and given something to "perform recursion" (that is, produce a \minline{b} from a \minline{(f b)}) can produce something of type \minline{b}. For example, you can use \minline{buildR} to define \minline{ana}:
+\noindent Intuitively, the argument of \hs{buildR} is a function that can, for all type \hs{b}, and given something to "perform recursion" (that is, produce a \hs{b} from a \hs{(f b)}) can produce something of type \hs{b}. For example, you can use \hs{buildR} to define \hs{ana}:
 \begin{minted}{Haskell}
 ana :: Functor f => (b -> f b) -> b -> Fix f
 ana f b = buildR
@@ -34,7 +34,7 @@ ana f b = buildR
 At first glance, we have the lovely property that:
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 
-This is exactly what we want: the right-side of the equation \emph{does not} build an intermediate structure. The validity of the above rule is guaranteed by the type (more precisely the rank-2 one), but as we show in section \ref{sec:seq} it is a semantic equivalence valid only without the presence of \minline{seq} and \minline{undefined}.
+This is exactly what we want: the right-side of the equation \emph{does not} build an intermediate structure. The validity of the above rule is guaranteed by the type (more precisely the rank-2 one), but as we show in section \ref{sec:seq} it is a semantic equivalence valid only without the presence of \hs{seq} and \hs{undefined}.
 
 \begin{theorem}
 Using, for a fixed parametric type $F$, a valid instance of $Functor$, and a type $A$:
@@ -68,14 +68,14 @@ $$cata\ go\ (g\ fix)\ =\ g\ go$$
 Given the definition of $buildR$, this is exactly what we required.
 \end{proof}
 
-\subsubsection{A note on $\bot$ and \minline{seq}}
+\subsubsection{A note on $\bot$ and \hs{seq}}
 \label{sec:seq}
-Free theorems are known to (partially) fail in presence of $\bot$ (\minline{undefined} in Haskell) and \minline{seq}, defined in the Haskell report \cite{haskellReport} as a function respecting the following equation:
+Free theorems are known to (partially) fail in presence of $\bot$ (\hs{undefined} in Haskell) and \hs{seq}, defined in the Haskell report \cite{haskellReport} as a function respecting the following equation:
 \begin{align*}
 seq\ \bot\ b\ &=\ \bot\\
 seq\ a\ b\ &=\ b\ \mathrm{,if}\ a\ \neq\ \bot
 \end{align*}
-\minline{seq} a function forcing the evaluation of its first argument and returning the second. This characterization is sufficient to break our rule (as it breaks also the \verb|foldr/build| one). Consider the following example:
+\hs{seq} a function forcing the evaluation of its first argument and returning the second. This characterization is sufficient to break our rule (as it breaks also the \verb|foldr/build| one). Consider the following example:
 
 \begin{minted}{Haskell}
 data BinF a = L | R deriving (Functor)
@@ -87,7 +87,7 @@ bad = cata go $ buildR $ \u -> u L `seq` u R
     go L = undefined
     go R = 0
 \end{minted}
-\minline{Bin} is a non-recursive type with two constructors validly defined in terms of \minline{Fix} (which allow us to use \minline{cata} and \minline{buildR}). Now consider the \minline{bad} expression: it constructs a \minline{Bin} using \minline{R} and then destruct it, with a partial function, defined only for \minline{R}. Without rewrite rules, the function simply returns \minline{0} (since \minline{u} is replaced by \minline{Fix}). Now with our \verb|cata/buildR| rule, \minline{u} is replaced by \minline{go}, and we precisely force the definition of \minline{go} on \minline{L}, so the whole expression in now \minline{undefined}.
+\hs{Bin} is a non-recursive type with two constructors validly defined in terms of \hs{Fix} (which allow us to use \hs{cata} and \hs{buildR}). Now consider the \hs{bad} expression: it constructs a \hs{Bin} using \hs{R} and then destruct it, with a partial function, defined only for \hs{R}. Without rewrite rules, the function simply returns \hs{0} (since \hs{u} is replaced by \hs{Fix}). Now with our \verb|cata/buildR| rule, \hs{u} is replaced by \hs{go}, and we precisely force the definition of \hs{go} on \hs{L}, so the whole expression in now \hs{undefined}.
 
 Fortunately, as described by Johann and Voigtländer \cite{JV04}, one can recover free theorems by requiring more properties on the combination function (like strictness and totality), but this is beyond our scope.
 
@@ -98,13 +98,13 @@ A rewrite rule consists in a name and body. The body is an equality were free va
 
 A rewrite rule can also specify a phase constraint. GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to ensure when the rules are firing and when functions are inlined.
 
-We want our rules to be compatible with those for lists already in place (the \verb|foldr/build| of Gill et al. \cite{Gill:1993:SCD:165180.165214}). They all target the \minline{build} function (defined in \verb|GHC.Base|) that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2. Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add a
+We want our rules to be compatible with those for lists already in place (the \verb|foldr/build| of Gill et al. \cite{Gill:1993:SCD:165180.165214}). They all target the \hs{build} function (defined in \verb|GHC.Base|) that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2. Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add a
 \begin{minted}{Haskell}
 {-# INLINE [1] buildR #-}
 \end{minted}
-pragma, to ensure that \minline{buildR} is not inlined too quickly. Note that we force the inlining by using \verb|INLINE| and not only \verb|NOINLINE|, but this is a good idea since high-order functions like \minline{buildR} generally benefit from inlining.
+pragma, to ensure that \hs{buildR} is not inlined too quickly. Note that we force the inlining by using \verb|INLINE| and not only \verb|NOINLINE|, but this is a good idea since high-order functions like \hs{buildR} generally benefit from inlining.
 
-Our rule will also target \minline{cata}, we consequently also need to add an \verb|INLINE| pragma to it.
+Our rule will also target \hs{cata}, we consequently also need to add an \verb|INLINE| pragma to it.
 \begin{minted}{Haskell}
 {-# INLINE [0] cata #-}
 \end{minted}
@@ -118,7 +118,7 @@ type Cata f = forall b. (f b -> b) -> b
     cata f (buildR g) = g f
  #-}
 \end{minted}
-This rule is genuinely replacing all occurrences of\\ \minline{cata f (buildR g)} by \minline{g f} \emph{when types matches}, that is when the argument of \minline{buildR} are allowing fusion. The \minline{[~1]} parameter will disable the rule in the final phase, so we can rewrite un-merged functions back.
+This rule is genuinely replacing all occurrences of\\ \hs{cata f (buildR g)} by \hs{g f} \emph{when types matches}, that is when the argument of \hs{buildR} are allowing fusion. The \hs{[~1]} parameter will disable the rule in the final phase, so we can rewrite un-merged functions back.
 
 \subsubsection{The problem of inlining of recursive functions}
 GHC is not (at all) very keen to inline recursive functions. Since we rewrite many things, there is sometimes an expression like:
@@ -133,7 +133,7 @@ Fortunately, the work of Peyton Jones \cite{PeytonJones:2007:CSH:1291151.1291200
 
 \subsection{Rewrite unneeded destructions}
 \label{sec:bind-def}
-All our work if focused on destructing structures. It is working great but can have unwanted implications. Consider the following code, implementing \minline{bind} for recursive trees (as defined in figure \ref{fig:listtree}):
+All our work if focused on destructing structures. It is working great but can have unwanted implications. Consider the following code, implementing \hs{bind} for recursive trees (as defined in figure \ref{fig:listtree}):
 
 \begin{minted}{Haskell}
 bind :: Tree a -> (a -> Tree b) -> Tree b
@@ -147,9 +147,9 @@ bind t f = buildR $ \u ->
     t
 \end{minted}
 
-\noindent Given a \minline{u} (which without rewriting will be \minline{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \minline{f}). But why do we need the unneeded \minline{cata u} after? Because one can replace \minline{u} by another function than \minline{Fix}, for example, something that calculates the number the leaves of the tree, thus we effectively need to "destruct" the tree constructed by \minline{f}, even if it induces an unwanted destruction/reconstruction without rewriting. The solution is to use a second rewrite rule that get rid of the identity catamorphism.
+\noindent Given a \hs{u} (which without rewriting will be \hs{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \hs{f}). But why do we need the unneeded \hs{cata u} after? Because one can replace \hs{u} by another function than \hs{Fix}, for example, something that calculates the number the leaves of the tree, thus we effectively need to "destruct" the tree constructed by \hs{f}, even if it induces an unwanted destruction/reconstruction without rewriting. The solution is to use a second rewrite rule that get rid of the identity catamorphism.
 
-Due to the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \minline{Fix} in our rewrite rule since it will be optimized away. Opportunely, this use case was planned (section 6.5 of the previously mentioned article) and we can target the function that replace \minline{Fix}: \minline{coerce}.
+Due to the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \hs{Fix} in our rewrite rule since it will be optimized away. Opportunely, this use case was planned (section 6.5 of the previously mentioned article) and we can target the function that replace \hs{Fix}: \hs{coerce}.
 
 \begin{minted}{Haskell}
 {-# RULES
@@ -158,9 +158,9 @@ Due to the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} we c
  #-}
 \end{minted}
 
-\noindent As a side note, this problem induces a possible limitation but easily solved: the real need for optimizations. Rewrite rules mechanism is enabled either when required by the user or where optimization is enabled (with \verb|-O| or \verb|-O2| flags); fortunately, \verb|cabal| enforces optimizations by default. If rewrite rules are not enabled, the direct use of \minline{build} in the body of \minline{bind} will introduce an unwanted and unneeded traversal of the part of the tree as showed. This is solved (as in the \verb|GHC.Base| module), by defining "normally" \minline{bind} and adding a rule to rewrite it in its \minline{buildR} form.
+\noindent As a side note, this problem induces a possible limitation but easily solved: the real need for optimizations. Rewrite rules mechanism is enabled either when required by the user or where optimization is enabled (with \verb|-O| or \verb|-O2| flags); fortunately, \verb|cabal| enforces optimizations by default. If rewrite rules are not enabled, the direct use of \hs{build} in the body of \hs{bind} will introduce an unwanted and unneeded traversal of the part of the tree as showed. This is solved (as in the \verb|GHC.Base| module), by defining "normally" \hs{bind} and adding a rule to rewrite it in its \hs{buildR} form.
 
-Note also that, as Voigtländer \cite{Voigtlnder2008TypesFP} noticed for \minline{map}, \minline{bind} for \minline{Tree} is expressed both with \minline{buildR} and \minline{cata}, thus it can be fused with \emph{both} producers and consumers of trees.
+Note also that, as Voigtländer \cite{Voigtlnder2008TypesFP} noticed for \hs{map}, \hs{bind} for \hs{Tree} is expressed both with \hs{buildR} and \hs{cata}, thus it can be fused with \emph{both} producers and consumers of trees.
 
 \subsection{Examples}
 \subsubsection{foldr/build}
@@ -178,7 +178,7 @@ map f xs = buildR $ \u ->
 \begin{minted}{Haskell}
 foldr c e (map f xs)
 \end{minted}
-(with \minline{foldr} defined as in section \ref{subsec:defi}) is rewritten, only by inlining, as:
+(with \hs{foldr} defined as in section \ref{subsec:defi}) is rewritten, only by inlining, as:
 \begin{minted}{haskell}
 cata go' $ buildR $ \u ->
   let go x = case x of
@@ -197,19 +197,19 @@ in cata go xs
 That is exactly what we wanted!
 
 \subsubsection{Automatic hylomorphisms}
-We can define \minline{ana} in term of \minline{buildR}:
+We can define \hs{ana} in term of \hs{buildR}:
 \begin{minted}{Haskell}
 ana :: Functor f => (b -> f b) -> b -> Fix f
 ana f b = buildR $ \u ->
   let c = u . fmap c . f in c b
 \end{minted}
 
-\noindent Then the fusion of a catamorphism (expressed with \minline{cata}) composed with an anamorphism (expressed with \minline{ana}) is automatic.
+\noindent Then the fusion of a catamorphism (expressed with \hs{cata}) composed with an anamorphism (expressed with \hs{ana}) is automatic.
 
 \subsection{Compatibility with GHC's rules on lists}
 Our work is compatible with the one already made in the \verb|GHC.Base| and \verb|GHC.List| modules (described by Peyton Jones et al. \cite{pbr}) in the sense that one can write a function that destruct a (Prelude) list (using \verb|foldr| or any "good consumer" of lists) to a fixed-point structure \emph{that can be fused with list producers and fixed-point structure consumers}.
 
-Let us take an example with \minline{Tree}, by defining\\ \minline{treeFromList} that convert a list to a "degenerated" tree, where each node has a leaf:
+Let us take an example with \hs{Tree}, by defining\\ \hs{treeFromList} that convert a list to a "degenerated" tree, where each node has a leaf:
 \begin{minted}{Haskell}
 treeFromList :: [Tree a] -> Tree a
 treeFromList xs = buildR $ \u ->
@@ -218,7 +218,7 @@ treeFromList xs = buildR $ \u ->
     (u EmptyF)
     xs
 \end{minted}
-\noindent \minline{treeFromlist} is made with both \minline{foldr} and \minline{buildR}, so it can fuse with both \minline{cata} or \minline{build}.
+\noindent \hs{treeFromlist} is made with both \hs{foldr} and \hs{buildR}, so it can fuse with both \hs{cata} or \hs{build}.
 
 The reverse is also possible, for example to convert a fixed-point list to a Prelude one:
 \begin{minted}{Haskell}
@@ -229,6 +229,6 @@ flistToList xs = GHC.Base.build $ \c n ->
     ConsF a b -> c a b
   in cata go xs
 \end{minted}
-\noindent \minline{treeFromlist} is made with both \minline{cata} and \minline{build}, so it can fuse with both \minline{buildR} or \minline{foldr}.
+\noindent \hs{treeFromlist} is made with both \hs{cata} and \hs{build}, so it can fuse with both \hs{buildR} or \hs{foldr}.
 
 It is simple to see that the system composed by \verb|cata/buildR| and \verb|foldr/build| rules is \emph{confluent}, that is, if there is an expression where both rules can fire, the order is not important (because both rules are just like a $\beta$-reduction with some manipulation of arguments).

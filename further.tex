@@ -4,7 +4,7 @@ The work presented here can be pursued in several ways:
 \begin{itemize}
 \item As mentioned by Peyton Jones et al. \cite{pbr}, forcing the inlining of functions to be able to rewrite them can produce a lot of code. A possible solution is to introduce a rule per function that rewrite them back if fusion did not happen.
 
-\item \minline{seq} and $\bot$ does not interact well with our rules, studying their impact and how to recover semantic equivalence in this precise case would be interesting, as it was made for the \verb|foldr/build| rule and others.
+\item \hs{seq} and $\bot$ does not interact well with our rules, studying their impact and how to recover semantic equivalence in this precise case would be interesting, as it was made for the \verb|foldr/build| rule and others.
 
 \item As explained, fusion of paramorphisms is not always a good idea. It would be great to have a convenient type criterion that makes the fusion interesting from a performance point of view.
 

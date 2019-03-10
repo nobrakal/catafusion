@@ -77,7 +77,7 @@ foldr c e = cata go
     go (ConsF a b) = c a b
 \end{minted}
 
-\noindent There is a better implementation of \hs{cata} using the same definitions as E. Kmett in his \verb|recusrion-schemes| package \cite{ekmett:eschems}:
+\noindent There is a better implementation of \hs{cata} using the same definition as E. Kmett in his \verb|recusrion-schemes| package \cite{ekmett:eschems}:
 
 \begin{minted}{Haskell}
 cata :: Functor f => (f b -> b) -> Fix f -> b

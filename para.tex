@@ -95,7 +95,7 @@ mapt f t = bind t (\x -> Fix (LeafF f x))
 \end{figure}
 
 \subsection{Usability and validity}
-As noticed by Domínguez and Pardo. \cite{paramorphismFusion} fusing paramorphisms with other operations is not always a good idea. Consider the previous example with proper suffixes of a list, but composed with a map:
+As noticed by Domínguez and Pardo \cite{paramorphismFusion} fusing paramorphisms with other operations is not always a good idea. Consider the previous example with proper suffixes of a list, but composed with a map:
 \begin{minted}{Haskell}
 suff (map f xs)
 \end{minted}

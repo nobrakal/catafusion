@@ -94,7 +94,7 @@ This optimization, called \emph{deforestation} (introduced by Wadler \cite{WADLE
 
 As explained in section \ref{sec:recschemes}, destructing a recursive structure (like \hs{foldr} for lists) is a very common operation and can be generally defined for fixed-point types, using the so-called \emph{catamorphisms} of Meijer et al. \cite{4cec4a43c86444479dc0003182424795}. The dual operation of constructing a recursive structure (like \hs{unfoldr} for lists) is also generalizable using \emph{anamorphisms} from the same authors.
 
-On the theoretical field, fusing these operations to avoid the construction of an intermediate structure is not a fresh idea and is widely studied, originally discussed by Meijer et al. \cite{4cec4a43c86444479dc0003182424795} or later in Gill's thesis \cite{Gill1996CheapDF} or by Johann \cite{Johann:2002:GSF:641433.641471}.
+On the theoretical field, fusing these operations to avoid the construction of an intermediate structure is not a fresh idea and is widely studied, originally discussed by Meijer et al. \cite{4cec4a43c86444479dc0003182424795} or later in Gill's thesis \cite{Gill1996CheapDF} focused on lists or by Johann \cite{Johann:2002:GSF:641433.641471} on general recursive structures.
 
 The particular contribution of this paper is dual:
 \begin{itemize}
@@ -114,8 +114,12 @@ The particular contribution of this paper is dual:
 \label{sec:para}
 \input{para.tex}
 
-\section{Further work}
+\section{Related work}
 \label{sec:related}
+\input{related.tex}
+
+\section{Further work}
+\label{sec:further}
 \input{further.tex}
 
 \begin{acks}

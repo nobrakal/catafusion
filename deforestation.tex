@@ -11,7 +11,7 @@ map g (map f xs)
 map (g . f) xs
 \end{minted}
 \noindent where we go through the list only once.
-The rewriting operation we made in this example is again not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \hs{map}. This concept can be simply generalized to recursive structure, as we will show in the next section.
+The rewriting operation we made in this example is again not at all dependent of the list structure: we just used the fact that we know how is made the list produced by \hs{map}. This concept can be simply generalized to recursive structure (as theoretically explained by \cite{Johann:2002:GSF:641433.641471}) and we will see practically how to makes this works in the next part.
 
 \subsection{The idea}
 Deforestation can be implemented on fixed-point types imitating the work of Gill et al. \cite{Gill:1993:SCD:165180.165214} on lists. Applying \hs{cata go} to a fixed-point structure has just the effect to replace every occurrence of \hs{Fix} by \hs{go}. Consequently, the idea is to abstract structure-producing functions with respect to \hs{Fix}. This is done using \hs{buildR}.
@@ -34,7 +34,7 @@ ana f b = buildR
 At first glance, we have the lovely property that:
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 
-This is exactly what we want: the right-side of the equation \emph{does not} build an intermediate structure. The validity of the above rule is guaranteed by the type (more precisely the rank-2 one), but as we show in section \ref{sec:seq} it is a semantic equivalence valid only without the presence of \hs{seq} and \hs{undefined}.
+This is exactly what we want: the right-side of the equation \emph{does not} build an intermediate structure. The next theorem stating this equality is proved using the rank-2-types required in \hs{Cata}'s type, but as we show in section \ref{sec:seq}, it is valid only without the presence of \hs{seq} and \hs{undefined}.
 
 \begin{theorem}
 Using, for a fixed parametric type $F$, a valid instance of $Functor$, and a type $A$:
@@ -45,7 +45,7 @@ Using, for a fixed parametric type $F$, a valid instance of $Functor$, and a typ
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 \end{theorem}
 \begin{proof}
-This is a consequence of free theorems of Wadler \cite{Wadler:1989:TF:99370.99404}, as for the \verb|foldr/build| rule \cite{Gill:1993:SCD:165180.165214}. The free theorem associated with $g$'s type is that, for all types $C$ and $D$, $f\ ::\ C \to D$, $p\ ::\ F\ C \to C$ and $q\ ::\ F\ D \to D$, then we have the following implication:
+This is a consequence of free theorems of Wadler \cite{Wadler:1989:TF:99370.99404} as for the \verb|foldr/build| rule \cite{Gill:1993:SCD:165180.165214}. The free theorem associated with $g$'s type is that, for all types $C$ and $D$, $f\ ::\ C \to D$, $p\ ::\ F\ C \to C$ and $q\ ::\ F\ D \to D$, then we have the following implication:
 \begin{align*}
 [\ \forall& x::C.\ f\ (p\ x)\ =\ q\ (fmap\ f\ x)\ ]\\
 &\implies f\ (g\ p)\ =\ g\ q

@@ -1,0 +1,11 @@
+%!TEX root = fusion.tex
+
+As mentioned several times, Gill et al. \cite{Gill:1993:SCD:165180.165214} deeply explored the case of deforestation for lists in Haskell, and Peyton Jones et al. \cite{pbr} provided a general tool (rewrite rules) that allows a direct implementation in GHC. Their implementation targets specific structures, likes lists or rose trees; requiring a \hs{build} function, a catamorphism and a rule \emph{per} structure. The rewrite rules infrastructure developed is strong and allows straightforward generalization for fixed-point types as we saw.
+
+An other utilization of rewrite rules can be found in the great Stream Fusion system, presented by Coutts et al. \cite{Coutts07streamfusion}, again focused on lists and presenting very interesting results.
+Not to be restricted to the only use of GHC's rewrite rules, other fusion systems exist, like \verb|HFusion| of Domínguez \cite{dominguez:hfusion}.
+
+On the theoretical field, a generalization of the work of Gill et al. \cite{Gill:1993:SCD:165180.165214} was made by Johann \cite{Johann:2002:GSF:641433.641471} for general recursive structures, which targetted the \verb|foldr/augment|, a generalized \verb|foldr/build| rule introduced by Gill in his PhD thesis \cite{Gill1996CheapDF}. Johann's approach is very similar to ours, while her work is made for classical recursive structures and emphasis a full correctness proof.
+
+This last point constitute, rightly, a large part of the literature about rewriting systems, because these rules behave badly in the real world, where \hs{seq} or \hs{undefined} are existing, and free theorems of Wadler \cite{Wadler:1989:TF:99370.99404} are to be used wisely in this context. Johann and Voigtländer \cite{JV04} greatly described the problem and possible solutions.
+

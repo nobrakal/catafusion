@@ -98,7 +98,7 @@ A rewrite rule consists in a name and body. The body is an equality were free va
 
 A rewrite rule can also specify a phase constraint. GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to ensure when the rules are firing and when functions are inlined.
 
-We want our rules to be compatible with those for lists already in place (the \verb|foldr/build| of Gill et al. \cite{Gill:1993:SCD:165180.165214}). They all target the \hs{build} function (defined in \verb|GHC.Base|) that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2. Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add a
+We want our rules to be compatible with those for lists already in place (the \verb|foldr/build| of Peyton Jones et al. \cite{pbr}). They all target the \hs{build} function (defined in \verb|GHC.Base|) that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2. Fortunately, this is not very hard work. First of all, imitating again the work made for lists, we will add a
 \begin{minted}{Haskell}
 {-# INLINE [1] buildR #-}
 \end{minted}

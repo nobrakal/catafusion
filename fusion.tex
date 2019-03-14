@@ -28,7 +28,7 @@
 %\acmISBN{978-1-4503-9999-9/18/06}
 
 \begin{document}
-\title{Deforestation for fixed-point structures}
+\title{Practical deforestation for fixed-point structures}
 \author{Alexandre Moine}
 
 \affiliation{%
@@ -40,7 +40,7 @@
 }
 
 \begin{abstract}
-Recursive structures are ubiquitous in Haskell, constructed and destructed continuously. It is known that such manipulations can sometimes be optimized to avoid the construction of intermediate structures with a process called deforestation. In this article, we propose a minimalistic automatic technique to perform it on fixed-point structures using the GHC rewrite rules system.
+Recursive structures are ubiquitous in Haskell, constructed and destructed continuously. It is known that such manipulations can often be significantly optimized to avoid the construction of intermediate structures using a technique called \emph{deforestation}. This technique has been successfully implemented for some specific data structures, such as lists, using GHC rewrite rules, but these rules cannot be reused for other data structures. In this paper, we propose a minimalistic implementation of deforestation on fixed-point structures using the GHC rewrite rules system, which can be reused for any recursive data structure. We also study and implement a generalized technique capable of handling certain classes of paramorphisms.
 \end{abstract}
 
 %

@@ -8,7 +8,7 @@ First of all, a classical recursive structure can be defined as a \emph{fixed-po
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}
-\hs{Fix} directly encodes recursion in types: you are giving to a parametric type itself, again and again. Note that this data-type is defined with \hs{newtype} (and not simply with a \hs{type} synonym) since it calls itself. Fortunately, the use of a \hs{newtype} is optimized away by the compiler, using the great work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141}.
+\hs{Fix} directly encodes recursion in types: you are giving to a parametric type itself, again and again. Note that this data-type is defined with \hs{newtype} (and not simply with a \hs{type} synonym) since it calls itself. Fortunately, the use of a \hs{newtype} is optimized away by the compiler, using the great work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141}, meaning that using \hs{Fix} in our code is at zero-cost.
 
 For example, one can define, as in Figure \ref{fig:listtree},
 \hs{(List a)}, isomorphic to \hs{[a]} and \hs{(Tree a)}, isomorphic to the classic recursive structure for binary trees:
@@ -66,7 +66,7 @@ Providing a definition for the empty list and another for the \verb|cons| operat
 cata :: Functor f => (f a -> a) -> Fix f -> a
 cata f (Fix x) = f (fmap (cata f) x)
 \end{minted}
-\noindent How \hs{cata} is working? As any fold on any structure! Given a recursive structure, we will firstly destruct any substructure, and then applies a function to the result. The "firstly destruct any substructure" step is performed by using a \hs{Functor} instance: it is the only way to get "inside" the structure, since we don't know how it is made. The combination function can also feel a bit strange but its type says it all: if we have a recursive structure where the substructures were replaced by a result, we must be able to combine them to produce a result.
+\noindent How \hs{cata} is working? As any fold on any structure! Given a recursive structure, we will firstly destruct any substructure, and then applies a function to combine the recursive results. The "firstly destruct any substructure" step is performed by using a \hs{Functor} instance: it is the only way to get "inside" the structure, since we don't know how it is made. The combination function can also feel a bit strange but its type says it all: if we have a recursive structure where the substructures were replaced by a result, we must be able to combine them to produce a result.
 
 For example, with \hs{(List a)} from the above example, one can write \hs{foldr}:
 \begin{minted}{Haskell}

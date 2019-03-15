@@ -11,9 +11,10 @@ map g (map f xs)
 map (g . f) xs
 \end{minted}
 \noindent where we go through the list only once.
-The rewriting operation we made in this example is again not at all dependent of the list structure: we just used the fact that we know how the list produced by \hs{map} is made. This concept can be simply generalized to recursive structure (as theoretically explained by Johann \cite{Johann:2002:GSF:641433.641471}) and we will see practically how to makes this works in the next part.
+The rewriting operation we made in this example is again not at all dependent of the list structure: we just used the fact that we knew how the list produced by \hs{map} is made. This concept can be simply generalized to recursive structures (as theoretically explained by Johann \cite{Johann:2002:GSF:641433.641471}) and we will see practically how to make this work in the next part.
 
 \subsection{The idea}
+\label{sec:the-idea}
 Deforestation can be implemented on fixed-point types imitating the work of Gill et al. \cite{Gill:1993:SCD:165180.165214} on lists. Applying \hs{cata go} to a fixed-point structure has just the effect to replace every occurrence of \hs{Fix} by \hs{go} in the structure. Consequently, the idea is to abstract structure-producing functions with respect to \hs{Fix}. This is done using \hs{buildR}.
 
 \begin{minted}{Haskell}
@@ -34,14 +35,15 @@ ana f b = buildR
 At first glance, we have the lovely property that:
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 
-This is exactly what we want: the right-side of the equation \emph{does not} build an intermediate structure. The next theorem stating this equality is proved using the rank-2-types required in \hs{Cata}'s type, but as we show in Section   \ref{sec:seq}, it is valid only without the presence of \hs{seq} and \hs{undefined}.
+This is exactly what we want: the right-side of the equation \emph{does not} build an intermediate structure. The next theorem stating this equality is proved using the rank-2-types required in \hs{Cata}'s type, but as we show in Section   \ref{sec:seq}, it is totally valid only without the presence of \hs{seq} and \hs{undefined}.
 
 \begin{theorem}
-Le $F$ be a fixed parametric type and a valid instance of $Functor$, and a type $A$:
+Let $F$ be a fixed parametric type and a valid instance of $Functor$, and a type $A$. Let $g$ and $go$ be functions with types:
 \begin{itemize}
 	\item $g :: \forall\ B.\ (F\ B \to B) \to B$
 	\item $go :: F\ A \to A $
 \end{itemize}
+then,
 $$cata\ go\ (buildR\ g)\ =\ g\ go$$
 \end{theorem}
 \begin{proof}
@@ -96,7 +98,7 @@ The implementation is pretty straightforward using GHC's rewrite rules described
 
 A rewrite rule consists in a name and body. The body is an equality were free variables are bounded by a universal quantifier. When the left part of the equality is encountered in the code (and types match), it is replaced by the right part (more details can be found in the official GHC manual \cite{ghc:manual}).
 
-A rewrite rule can also specify a phase constraint. GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines (replace by its definition) functions. The so-called "phase control" is the \emph{only} mechanism that allows us to ensure when the rules are firing and when functions are inlined.
+A rewrite rule can also specify a phase constraint. GHC is performing 3 distinct phases where it tries to apply rewrite rules and it inlines functions (that is, replace a function by its definition). The so-called "phase control" is the \emph{only} mechanism that allows us to ensure when the rules are firing and when functions are inlined.
 
 We want our rules to be compatible with those for lists already in place (the \verb|foldr/build| rule of Peyton Jones et al. \cite{pbr}). They all target the \hs{build} function (defined in \verb|GHC.Base|) that is inlined in phase 1, so we have to do all our rewriting work before, in phase 2.
 
@@ -104,7 +106,7 @@ First of all, imitating again the work made for lists, we will add a
 \begin{minted}{Haskell}
 {-# INLINE [1] buildR #-}
 \end{minted}
-pragma, to ensure that \hs{buildR} is not inlined too quickly. Note that we prevent the inlining in phase 2 and force it in phase 1 using the \verb|INLINE| pragma; this is a good idea since high-order functions like \hs{buildR} generally benefit from inlining.
+pragma, to ensure that \hs{buildR} is not inlined too quickly. Note that using the \verb|INLINE [1]| pragma prevents the inlining in phase 2 and forces it in phase 1; this is a good idea since high-order functions like \hs{buildR} generally benefit from inlining.
 
 Our rule will also target \hs{cata}, we consequently also need to add an \verb|INLINE| pragma to it.
 \begin{minted}{Haskell}
@@ -120,7 +122,7 @@ type Cata f = forall b. (f b -> b) -> b
     cata f (buildR g) = g f
  #-}
 \end{minted}
-This rule is genuinely replacing all occurrences of\\ \hs{cata f (buildR g)} by \hs{g f} \emph{when types matches}, that is when the argument of \hs{buildR} are allowing fusion. The \hs{[~1]} parameter will disable the rule in the final phase, so we can rewrite un-merged functions back.
+This rule is genuinely replacing all occurrences of\\ \hs{cata f (buildR g)} by \hs{g f} \emph{when types match}, that is when the argument of \hs{buildR} are allowing fusion. The \hs{[~1]} parameter will disable the rule in the final phase, so we can rewrite un-merged functions back.
 
 \subsubsection{The problem of inlining recursive functions}
 GHC is not (at all) very keen to inline recursive functions. Since we rewrite many things, there is sometimes an expression like:
@@ -135,7 +137,7 @@ Fortunately, the work of Peyton Jones \cite{PeytonJones:2007:CSH:1291151.1291200
 
 \subsection{Rewriting unneeded destructions}
 \label{sec:bind-def}
-All our work if focused on destructing structures. It can have unwanted implications. Consider the following code, implementing \hs{bind} for recursive trees (as defined in figure \ref{fig:listtree}):
+All our work if focused on destructing structures. It can have unwanted implications. Consider the following code, implementing \hs{bind} for recursive trees (as defined in Figure \ref{fig:listtree}):
 
 \begin{minted}{Haskell}
 bind :: Tree a -> (a -> Tree b) -> Tree b
@@ -149,7 +151,9 @@ bind t f = buildR $ \u ->
     t
 \end{minted}
 
-\noindent Given a \hs{u} (which without rewriting will be \hs{Fix}), you can indeed go trough the tree until you find a leaf, and replace this leaf by an application of a function producing a tree (here called \hs{f}). But why do we need the unneeded \hs{cata u} after? Because one can replace \hs{u} by another function than \hs{Fix}, for example, something that calculates the number the leaves of the tree, thus we effectively need to "destruct" the tree constructed by \hs{f}. The problem is that, without rewriting, \hs{u} will be replaced by \hs{Fix}, and we will end up with a \hs{cata Fix} (equivalent to \hs{id}) applied to the tree produced by \hs{f}. The solution is to use a second rewrite rule that get rid of the identity catamorphism.
+\noindent Given a \hs{u} of the right type, one can indeed go trough the tree until it finds a leaf, and replaces this leaf by an application of a function producing a tree (here called \hs{f}). But why do we need the unneeded \hs{cata u} after? Because one can replace \hs{u} by another function than \hs{Fix}, for example, something that calculates the number of leaves of the tree, thus we effectively need to "destruct" the tree constructed by \hs{f}.
+
+The problem is that, without rewriting, \hs{u} will be replaced by \hs{Fix}, and we will end up with a \hs{cata Fix} (which is replacing occurrences of \hs{Fix} in the structure by \hs{Fix}, so equivalent to \hs{id}) applied to the tree produced by \hs{f}. To avoid this unneeded destruction/construction, the solution is to use a second rewrite rule that get rid of the identity catamorphism.
 
 Due to the work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} we cannot target \hs{Fix} in our rewrite rule since it will be optimized away. Opportunely, this use case was planned (Section 6.5 of \cite{Breitner:2014:SZC:2692915.2628141}) and we can target the function that replace \hs{Fix}: \hs{coerce}.
 
@@ -166,7 +170,7 @@ Note also that, as Voigtländer \cite{Voigtlnder2008TypesFP} noticed for \hs{map
 
 \subsection{Examples}
 \subsubsection{foldr/build}
-The \verb|foldr/build| rule is a particular case of our \verb|cata/buildR| rule, using:
+The \verb|foldr/build| rule is a particular case of our\\ \verb|cata/buildR| rule, using:
 \begin{minted}{haskell}
 map :: (a -> b) -> List a -> List b
 map f xs = buildR $ \u ->
@@ -199,14 +203,7 @@ in cata go xs
 That is exactly what we wanted!
 
 \subsubsection{Automatic hylomorphisms}
-We can define \hs{ana} in term of \hs{buildR}:
-\begin{minted}{Haskell}
-ana :: Functor f => (b -> f b) -> b -> Fix f
-ana f b = buildR $ \u ->
-  let c = u . fmap c . f in c b
-\end{minted}
-
-\noindent Then the fusion of a catamorphism (expressed with \hs{cata}) composed with an anamorphism (expressed with \hs{ana}) is automatic.
+As we saw in Section \ref{sec:the-idea}, we can define \hs{ana} in term of \hs{buildR}. The fusion of a catamorphism (expressed with \hs{cata}) composed with an anamorphism (expressed with \hs{ana}, so with \hs{buildR}) is then totally automatic, and will effectively produce a hylomorphism.
 
 \subsection{Compatibility with GHC's rules on lists}
 Our work is compatible with the one already made in the \verb|GHC.Base| and \verb|GHC.List| modules (described by Peyton Jones et al. \cite{pbr}) in the sense that one can write a function that destruct a (Prelude) list (using \verb|foldr| or any "good consumer" of lists) to a fixed-point structure \emph{that can be fused with list producers and fixed-point structure consumers}.

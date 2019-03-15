@@ -80,7 +80,7 @@ Recursive structures are ubiquitous in Haskell, constructed and destructed conti
 
 \section{Introduction}
 
-A Haskell program can be seen as the composition of many small programs. It is often the right way to organize software development but can it lead to inefficiencies. For example the expression:
+A Haskell program can be seen as the composition of many small programs. It is often the right way to organize software but it can lead to inefficiencies. For example the expression:
 \begin{minted}{Haskell}
 foldr (+) 0 (map (* 2) xs)
 \end{minted}

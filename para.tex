@@ -2,7 +2,7 @@
 \subsection{Paramorphisms}
 \label{sec:para-list}
 
-For now, we worked only on catamorphisms. They are not really satisfying to define recursive functions that also use an unconsumed part of the structure, without destructing it recursively first. A \emph{paramorphism} (introduced by Meertens \cite{Meertens1992}) is a direct response to this problem, as it allows the combination function to have a look on the unconsumed part of the structure, imitating the full power of recursion.
+For now, we worked only on catamorphisms. They are not really satisfying to define recursive functions that also use a part of the structure without destructing it recursively first. A \emph{paramorphism} (introduced by Meertens \cite{Meertens1992}) is a direct response to this problem, as it allows the combination function to have a look on the unconsumed part of the structure, imitating the full power of recursion.
 
 They can be defined for lists using \hs{paraL}:
 \begin{minted}{Haskell}
@@ -172,7 +172,7 @@ Let us take back our \hs{has2leaves}  but composed with a previous operation on 
 has2Leaves u v (bind t f)
 \end{minted}
 
-\noindent For fusion to happen, we need to have \hs{bind} on a re-writeable form for a paramorphism, that is to write it in term of \hs{buildR}. The interesting part comes with the fact that \hs{bind} appears also on its \hs{buildR} form, as you can see in Figure \ref{fig:bindbuild}. It is necessary since we need to perform the \hs{bind} operation also on the unconsumed part of the tree. Since \hs{has2Leaves} also destructs the unconsumed part of the tree using \hs{hasLeaf} (a catamorphism), one can hope that fusion will also happen here, so we need this \hs{bind} to be also in a rewritable form, hence we introduce \hs{bindR} which is just \hs{bind} in its (final) \hs{buildR} form. This allows the \hs{has2leavesMapt} optimization described in the previous section to happen automatically.
+\noindent For fusion to happen, we need to have \hs{bind} on a re-writeable form for a paramorphism, that is to write it in term of \hs{buildR}. The interesting part comes with the fact that \hs{bind} appears also on its \hs{buildR} form, as we can see in Figure \ref{fig:bindbuild}. It is necessary since we need to perform the \hs{bind} operation also on the unconsumed part of the tree. Since \hs{has2Leaves} also destructs the unconsumed part of the tree using \hs{hasLeaf} (a catamorphism), one can hope that fusion will also happen here, so we need this \hs{bind} to be also in a rewritable form, hence we introduce \hs{bindR} which is just \hs{bind} in its (final) \hs{buildR} form. This allows the \hs{has2leavesMapt} optimization described in the previous section to happen automatically.
 
 This leads to a problem: to cover all cases, we need to "unroll" \hs{build} in its \hs{buildR} form indefinitely. Indeed, one can use another paramorphism on an unconsumed part of the structure, and hopes that fusion happen also here with the \hs{bind} made on the unconsumed part. For us, these functions are maybe not of a big interest, and the rule system presented here will allow fusion only if the unconsumed part of the structure is destructed by a catamorphism (like in \hs{has2Leaves}).
 
@@ -225,11 +225,11 @@ We now have three rules, and we need all of them. Indeed, \verb|"cata/buildR"| a
 \begin{minted}{Haskell}
 bind (bind t f) g
 \end{minted}
-\noindent the two \hs{bind} will be inlined into their \hs{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to do a case analysis on the combination function. A possibility is to perform directly the case analysis, but this will duplicate the occurrences of the outer \hs{bind} into the body of the first one, and GHC is smart enough to create a variable to reduce code duplication, not knowing that it will be optimized after. So we can use \hs{destruct}, and performing the case analysis in its first argument. Hence, without a too early inlining of \hs{buildR}, the second \hs{bind} appears only once, and we can fuse it using \verb|"destruct/buildR"|.
+\noindent the two \hs{bind} will be inlined into their \hs{buildR} form, but since they have to deal with either a paramorphism or a catamorphism, they need to do a case analysis on the combination function. A possibility is to perform directly the case analysis, but this will duplicate the occurrences of the outer \hs{bind} into the body of the first one, and GHC is smart enough to create a variable to reduce code duplication, which prevents the \verb|cata/buildR| rule to fire, not knowing that it will be optimized after. So we can use \hs{destruct}, and perform the case analysis in its first argument. Hence, without a too early inlining of \hs{buildR}, the second \hs{bind} appears only once (in the second argument of \hs{destruct}), and we can fuse it using the \verb|"destruct/buildR"| rule.
 
 \subsubsection{Compatibility with GHC's rules on lists}
 \label{sec:parabuild}
-To be able to fuse eligible paramorphisms with functions that are working on lists, one need to have access to paramorphisms \emph{for lists}. Moreover, these paramorphisms must be expressed with \hs{foldr}, since we want to preserve list-fusion with the \verb|"foldr/build"| rule. The classical solution is to give a copy of the list in the accumulating parameter of \hs{foldr}, so it is available for the "upper" combination function. Sadly, this definition is not what we need; indeed, imagine that we want for example, produce a fixed-point list from a classical list, but allowing fusion with \emph{both} Prelude list producers and \hs{List} consumers, we will have to do something like:
+To be able to fuse eligible paramorphisms with functions that are working on lists, one need to have access to paramorphisms \emph{for lists}. Moreover, these paramorphisms must be expressed with \hs{foldr}, since we want to preserve list-fusion with the \verb|"foldr/build"| rule. The classical solution is to give a copy of the list in the accumulating parameter of \hs{foldr}, so it is available for the "upper" combination function. Sadly, this definition is not what we need; indeed, imagine that we want to produce a fixed-point list from a classical list, but allowing fusion with \emph{both} Prelude list producers and \hs{List} consumers, we will have to do something like (excuse the non-exhaustive pattern matching, this is the only interesting case):
 \begin{minted}{Haskell}
 fromClassicalList :: [a] -> List a
 fromClassicalList xs =
@@ -240,7 +240,7 @@ fromClassicalList xs =
       (nil,(u NilF))
     xs
 \end{minted}
-Excuse the non-exhaustive pattern matching, this is the only interesting case. So the obvious problem is that, even if \hs{u} is guaranteed to not use both the unconsumed structure and the recursive call, they need to be both available. The medication is here clearly worse than the disease: we are rebuilding the original list even if we don't use it. As a consequence, if we perform fusion with lists, we must do it carefully, and only with catamorphisms.
+\noindent So the obvious problem is that, even if \hs{u} is guaranteed to not use both the unconsumed structure and the recursive call, they need to be both available. The medication is here clearly worse than the disease: we are rebuilding the original list even if we don't use it. As a consequence, if we perform fusion with lists, we must do it carefully, and only with catamorphisms.
 
 \subsection{Conclusion}
-This rather more complicated rule system preserves the work made in Section \ref{sec:rectypes}, namely that catamorphisms can be fused with "good producers", and extend it to paramorphisms fusion with (almost) the same "good producers". However, all things have a price, and a major drawback is that the implementation and the definition of new functions is more difficult than with catamorphisms fusion alone.
+This rather more complicated rule system preserves the work made in Section \ref{sec:rectypes}, namely that catamorphisms can be fused with "good producers", and extends it to paramorphisms fusion with (almost) the same "good producers". However, all things have a price, and a major drawback is that the implementation and the definition of new functions is more difficult than with catamorphisms fusion alone.

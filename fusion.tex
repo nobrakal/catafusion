@@ -80,26 +80,26 @@ Recursive structures are ubiquitous in Haskell, constructed and destructed conti
 
 \section{Introduction}
 
-A Haskell program can be seen as the composition of many other small programs. It is often the right way to see software development but can lead to optimization problems. For example the expression:
+A Haskell program can be seen as the composition of many small programs. It is often the right way to organize software development but can it lead to inefficiencies. For example the expression:
 \begin{minted}{Haskell}
 foldr (+) 0 (map (* 2) xs)
 \end{minted}
-is equivalent to
+is equivalent to:
 \begin{minted}{Haskell}
 foldr ((+) . (*) 2) 0 xs
 \end{minted}
 
 \noindent While the first one is more comprehensible, it builds an intermediate list that is not needed. The second version is optimized and will go through the original list only once.
-This optimization, called \emph{deforestation} (introduced by Wadler \cite{WADLER1990231}) can be made at compile-time and thus allowing the user to write a readable code while the compiler optimize it where possible; this is known for a long time, well explained by Gill et al. \cite{Gill:1993:SCD:165180.165214} and implemented twice for lists and rose trees by Peyton Jones et al. \cite{pbr} for GHC.
+This optimization, called \emph{deforestation} (introduced by Wadler \cite{WADLER1990231}) can be made at compile-time and thus allowing the user to write a readable code while the compiler optimizes it where possible; this is known for a long time, well explained by Gill et al. \cite{Gill:1993:SCD:165180.165214} and implemented twice for lists and rose trees by Peyton Jones et al. \cite{pbr} for GHC.
 
-As explained in section \ref{sec:recschemes}, destructing a recursive structure (like \hs{foldr} for lists) is a very common operation and can be generally defined for fixed-point types, using the so-called \emph{catamorphisms} of Meijer et al. \cite{4cec4a43c86444479dc0003182424795}. The dual operation of constructing a recursive structure (like \hs{unfoldr} for lists) is also generalizable using \emph{anamorphisms} from the same authors.
+As explained in Section \ref{sec:recschemes}, destructing a recursive structure (like \hs{foldr} for lists) is a very common operation and can be generally defined for fixed-point types, using the so-called \emph{catamorphisms} of Meijer et al. \cite{4cec4a43c86444479dc0003182424795}. The dual operation of constructing a recursive structure (like \hs{unfoldr} for lists) is also generalizable using \emph{anamorphisms} from the same authors \cite{4cec4a43c86444479dc0003182424795}.
 
 On the theoretical field, fusing these operations to avoid the construction of an intermediate structure is not a fresh idea and is widely studied, originally discussed by Meijer et al. \cite{4cec4a43c86444479dc0003182424795} or later in Gill's thesis \cite{Gill1996CheapDF} focused on lists or by Johann \cite{Johann:2002:GSF:641433.641471} on general recursive structures.
 
 The particular contribution of this paper is dual:
 \begin{itemize}
-\item We propose an implementation that makes deforestation available \emph{for free} to any fixed-point structures using rewrite rules, an already-in-place mechanism of GHC to deal with deforestation on lists. Our work is still fully compatible with the one already made for lists, and certainly adjustable to other rule systems. We prove in part the validity of this implementation and provide several examples (section \ref{sec:rectypes}).
-\item Fixed-point types allow us to explore a more complicated fusion system, targetting more general expressions called \emph{paramorphisms} (introduced by Meertens \cite{Meertens1992}). While the theoretical basis was already studied by Domínguez and Pardo \cite{paramorphismFusion}, we propose a new implementation giving paramorphisms fusion \emph{for free} to fixed-point structures while preserving compatibility with the previously mentioned classical deforestation (section \ref{sec:para}).
+\item We propose an implementation that makes deforestation available \emph{for free} to any fixed-point structures using rewrite rules, an already-in-place mechanism of GHC to deal with deforestation on lists. Our work is still fully compatible with the one already made for lists, and certainly adjustable to other rule systems. We prove in part the validity of this implementation and provide several examples (Section \ref{sec:rectypes}).
+\item Fixed-point types allow us to explore a more complicated fusion system, targetting more general expressions called \emph{paramorphisms} (introduced by Meertens \cite{Meertens1992}). While the theoretical basis was already studied by Domínguez and Pardo \cite{paramorphismFusion}, we propose a new implementation giving paramorphisms fusion \emph{for free} to fixed-point structures while preserving compatibility with the previously mentioned classical deforestation (Section \ref{sec:para}).
 \end{itemize}
 
 \section{Recursion schemes}
@@ -123,7 +123,7 @@ The particular contribution of this paper is dual:
 \input{further.tex}
 
 \begin{acks}
-I would like to thank Andrey Mokhov as he suggested me to start this paper and provided great counsels and constant encouragements during the writing. Yann Régis-Gianas, Jospeh Priou and Maxime Flin provided very useful comments and remarks during several presentations of this work.
+I would like to thank Andrey Mokhov as he suggested me to start this paper and provided great counsels and constant encouragements during the writing. I also thank Yann Régis-Gianas who gave me very useful comments on first versions of this paper. Jospeh Priou and Maxime Flin also provided relevant remarks during several presentations of this work.
 \end{acks}
 
 \bibliographystyle{ACM-Reference-Format}

@@ -1,16 +1,16 @@
 %!TEX root = fusion.tex
 
-Recursion schemes are almost everywhere in functional programming. They generalize mainly two very common patterns: constructing a structure and destructing it recursively. They were popularized by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}, which are giving them a categorical meaning. Our goal is not to study these strong mathematical foundations, but just define and use recursive schemes on a particular case: fixed-point types.
+Recursion schemes are almost everywhere in functional programming. They generalize two very common patterns: constructing a structure and destructing it recursively. They were popularized by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}, which are giving them a categorical meaning. In this section, we review them in the particular case of fixed-point structures.
 
-\subsection{Fixed-point types}
+\subsection{Fixed-point structures}
 \label{subsec:defi}
-First of all, classic recursive structure can be defined as \emph{fixed-points}, using the \hs{Fix} data-type:
+First of all, a classical recursive structure can be defined as a \emph{fixed-point}, using the \hs{Fix} data-type:
 \begin{minted}{Haskell}
 newtype Fix f = Fix (f (Fix f))
 \end{minted}
-\hs{Fix} directly encodes recursion in types: you are giving to a parametric type itself, again and again. Note that this data-type is defined with \hs{newtype} (and not simply with a \hs{type} synonym) since it calls itself, but the great work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141} will optimize it away at compile time.
+\hs{Fix} directly encodes recursion in types: you are giving to a parametric type itself, again and again. Note that this data-type is defined with \hs{newtype} (and not simply with a \hs{type} synonym) since it calls itself. Fortunately, the use of a \hs{newtype} is optimized away by the compiler, using the great work of Breitner et al. \cite{Breitner:2014:SZC:2692915.2628141}.
 
-For example, you can define, as in figure \ref{fig:listtree}
+For example, one can define, as in Figure \ref{fig:listtree},
 \hs{(List a)}, isomorphic to \hs{[a]} and \hs{(Tree a)}, isomorphic to the classic recursive structure for binary trees:
 \begin{minted}{Haskell}
 data TreeB a =
@@ -49,7 +49,7 @@ instance Functor (TreeF a) where
 
 type Tree a = Fix (TreeF a)
 \end{minted}
-\caption{Examples of recursive types: lists and binary trees}
+\caption{Two fixed-point types: lists and binary trees}
 \label{fig:listtree}
 \end{figure}
 
@@ -60,13 +60,13 @@ foldr :: (a -> b -> b) -> b -> [a] -> b
 foldr _ z []     = z
 foldr k z (y:ys) = k y (foldr k z ys)
 \end{minted}
-The idea of \hs{foldr} is that, if you provide a definition for the empty list and another for the \verb|cons| operation, then you can go trough a list and destruct it recursively. Note that we didn't use the concept of list but just its constructors; consequently you can use this process for any other recursive type. The definition of a type in term of \hs{Fix} allows a straightforward implementation of \hs{cata}, a high-order function for catamorphisms.
+Providing a definition for the empty list and another for the \verb|cons| operation allows us to go through a list and destruct it recursively. Note that we didn't use the concept of list but just its constructors; consequently this process applies to any other recursive type. The definition of a type in term of \hs{Fix} allows a straightforward implementation of \hs{cata}, a high-order function for catamorphisms.
 
 \begin{minted}{Haskell}
 cata :: Functor f => (f a -> a) -> Fix f -> a
 cata f (Fix x) = f (fmap (cata f) x)
 \end{minted}
-\noindent How \hs{cata} is working? As any fold on any structure! Given a recursive one, your will firstly destruct any substructure, and then apply a function to the result. The "firstly destruct any substructure" step is performed by using a \hs{Functor} instance: it is the only way to get "inside" the structure, since we don't know how it is made. The combination function can also feel a bit strange but its type says it all: if you have a recursive structure where the substructures were replaced by a result, then you must be able to combine these to produce yourself a result.
+\noindent How \hs{cata} is working? As any fold on any structure! Given a recursive structure, we will firstly destruct any substructure, and then applies a function to the result. The "firstly destruct any substructure" step is performed by using a \hs{Functor} instance: it is the only way to get "inside" the structure, since we don't know how it is made. The combination function can also feel a bit strange but its type says it all: if we have a recursive structure where the substructures were replaced by a result, we must be able to combine them to produce a result.
 
 For example, with \hs{(List a)} from the above example, one can write \hs{foldr}:
 \begin{minted}{Haskell}
@@ -77,7 +77,7 @@ foldr c e = cata go
     go (ConsF a b) = c a b
 \end{minted}
 
-\noindent There is a better implementation of \hs{cata} using the same definition as E. Kmett in his \verb|recusrion-schemes| package \cite{ekmett:eschems}:
+\noindent A better implementation of \hs{cata} due to E. Kmett can be found his \verb|recusrion-schemes| package \cite{ekmett:eschems}:
 
 \begin{minted}{Haskell}
 cata :: Functor f => (f b -> b) -> Fix f -> b
@@ -94,16 +94,16 @@ For example, anamorphisms on lists can be expressed with the so-called \hs{unfol
 unfoldr :: (b -> Maybe (a, b)) -> b -> [a]
 unfoldr f b =
   case f b of
-    Just (a, b') -> c a (unfoldr f b')
-    Nothing      -> n
+    Just (a, b') -> cons a (unfoldr f b')
+    Nothing      -> nil
 \end{minted}
 
-\noindent \hs{unfoldr} takes a function that, from a starting seed, produces maybe an element and another seed, or nothing. As clever reader already guessed, we can provide anamorphisms for any fixed-point structure, using:
+\noindent \hs{unfoldr} takes a function that, from a starting seed, produces maybe an element and another seed, or nothing. It then iterates the process until the function does not produce any more seed. As the clever reader already guessed, we can provide anamorphisms for any fixed-point structure, using \hs{ana} (as in the \verb|recursion-schemes| package \cite{ekmett:eschems}):
 \begin{minted}{Haskell}
 ana :: Functor f => (b -> f b) -> b -> Fix f
 ana f b = c where c = Fix . fmap c . f
 \end{minted}
-The first argument is a function that, from a seed, produce a base structure filled with seeds. Then you can iterate the process and obtain a full structure. For example, with lists we can write \hs{unfoldr} in term of \hs{ana}.
+The first argument is a function that, from a seed, produces a base structure filled with seeds. Then one can iterate the process to obtain a full structure. For example, we can write \hs{unfoldr} in term of \hs{ana} for our \hs{List} type:
 \begin{minted}{Haskell}
 unfoldr :: (b -> Maybe (a, b)) -> b -> List a
 unfoldr f = ana go . f
@@ -113,7 +113,7 @@ unfoldr f = ana go . f
 \end{minted}
 
 \subsection{Fusion of recursive schemes - hylomorphisms}
-A first nice result on these recursive schemes is that the composition of an anamorphism with a catamorphism can be optimized to remove the need of building the intermediate structure: we then obtain a \emph{hylomorphism} (this is correctly proved by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}).
+A first nice result on these recursive schemes is that the composition of an anamorphism with a catamorphism can be optimized to remove the need of building the intermediate structure: we then obtain a \emph{hylomorphism} (as proved by Meijer et al. \cite{4cec4a43c86444479dc0003182424795}).
 Hylomorphisms can be expressed using \hs{hylo} (as in the \verb|recursion-schemes| package \cite{ekmett:eschems}):
 \begin{minted}{Haskell}
 hylo :: Functor f =>
@@ -121,4 +121,4 @@ hylo :: Functor f =>
 hylo f g = h where h = f . fmap h . g
 \end{minted}
 \noindent \hs{g} generates a structure, destructed right away using \hs{f}.
-The goal of the next section is to make this fusion automatically.
+The goal of the next section is to implement this fusion automatically as an automatic program transformation.
